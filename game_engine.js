@@ -76,23 +76,27 @@ var GAMEBOARD = {
         return GAMEBOARD.player.nextMove.wantMove;
     },
     enqueuePiecesTurn: function () {
-        try {
-            GAMEBOARD.playerCannotMove = true;
-            GAMEBOARD.turn++;
-            console.log("pieces' turn");
-            var nextPiece = GAMEBOARD.pieces.head;
-            while (nextPiece) {
-                nextPiece.move();
-                // console.log('here');
-                nextPiece = nextPiece.next;
+        if (GAMEBOARD.piecesCanMove) {
+            try {
+                GAMEBOARD.playerCannotMove = true;
+                GAMEBOARD.piecesWantMove = false;
+                GAMEBOARD.turn++;
+                console.log("pieces' turn");
+                var nextPiece = GAMEBOARD.pieces.head;
+                while (nextPiece) {
+                    nextPiece.move();
+                    // console.log('here');
+                    nextPiece = nextPiece.next;
+                }
+                VIEWER.afterAnimDone(GAMEBOARD.letPlayerMove);
+            } catch (e) {
+                if (e === 'Game Over') {
+                    GAMEBOARD.gameOver();
+                    VIEWER.gameOver();
+                }
             }
-            VIEWER.afterAnimDone(GAMEBOARD.letPlayerMove);
-            // GAMEBOARD.player.makeMove();
-        } catch (e) {
-            if (e === 'Game Over') {
-                GAMEBOARD.gameOver();
-                VIEWER.gameOver();
-            }
+        } else {
+            GAMEBOARD.piecesWantMove = true;
         }
     },
     piecePrototype: {
