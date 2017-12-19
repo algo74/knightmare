@@ -1,7 +1,7 @@
 var GAMEBOARD = {
     sizeX: 25,
     sizeY: 10,
-    turnDelay: 3000,
+    turnDelay: 1000,
     pieces: {
         head: null,
         tail: null
@@ -30,10 +30,16 @@ var GAMEBOARD = {
         };
         GAMEBOARD.maxRow++;
     },
+    isVisible: function (piece) {
+        return GAMEBOARD.addX(piece.x, -GAMEBOARD.viewLeft) < GAMEBOARD.viewWidth && GAMEBOARD.addY(piece.y, -GAMEBOARD.viewLow) < GAMEBOARD.viewHeight;
+    },
     initGame: function () {
         var i;
         GAMEBOARD.initBoard();
         GAMEBOARD.playerCannotMove = false;
+        GAMEBOARD.piecesCanMove = true;
+        GAMEBOARD.piecesWantMove = false;
+        GAMEBOARD.player.nextMove.wantMove = false;
         GAMEBOARD.maxRow = 0;
         GAMEBOARD.turn = 0;
 
@@ -91,7 +97,7 @@ var GAMEBOARD = {
     },
     piecePrototype: {
         move: function () {
-            if (this.type.canTakePlayer(this)) {
+            if (GAMEBOARD.isVisible(this) && this.type.canTakePlayer(this)) {
                 // TODO: gameover
                 this.type.animatePlayerDeath(this);
                 throw 'Game Over';
@@ -176,6 +182,7 @@ var GAMEBOARD = {
             var nextMove = GAMEBOARD.player.nextMove;
             var dx, dy;
             if (nextMove.wantMove) {
+                GAMEBOARD.piecesCanMove = false;
                 nextMove.wantMove = false;
                 dx = GAMEBOARD.player.nextMove.dx;
                 dy = GAMEBOARD.player.nextMove.dy;
@@ -325,7 +332,7 @@ var GAMEBOARD = {
                     }
                 }
                 // recreate row
-                // this.createRow(row);
+                GAMEBOARD.createRow(row);
             }
             // allow pieces to move
             GAMEBOARD.letPiecesMove();
@@ -372,21 +379,27 @@ var VIEWER = {
         'easing': 'swing',
         'queue': false
     },
+    backdrops: {
+        i: 4,
+        j: 2,
+        x: 10,
+        y: 10
+    },
     adjustBoardSize: function () {
         // calculate size of square
         var availableX, availableY;
         availableX = parseFloat(VIEWER.$gamewindow.width());
         availableY = parseFloat($(window).height());
-        VIEWER.squareSize = Math.floor(Math.min(availableX / GAMEBOARD.viewWidth, availableY / GAMEBOARD.viewHeight) / 2);
+        VIEWER.squareSize = Math.floor(Math.min(availableX / GAMEBOARD.viewWidth, availableY / GAMEBOARD.viewHeight) / 1.5);
         // set sizes of board
         VIEWER.$gamewindow.css({ 'width': GAMEBOARD.viewWidth * VIEWER.squareSize,
             'height': GAMEBOARD.viewHeight * VIEWER.squareSize
         });
-        VIEWER.$gameboard.css({ 'width': GAMEBOARD.sizeX * VIEWER.squareSize,
+        VIEWER.$gameboard.css({
+            'width': GAMEBOARD.sizeX * VIEWER.squareSize,
             'height': GAMEBOARD.sizeY * VIEWER.squareSize,
-            'left': -VIEWER.viewX(GAMEBOARD.viewLeft * 2),
-            'bottom': 0,
-            'background-size': (VIEWER.squareSize * 2).toString() + 'px ' + (VIEWER.squareSize * 2).toString() + 'px'
+            'left': -GAMEBOARD.viewLeft * VIEWER.squareSize,
+            'bottom': 0
         });
         this.maxJumpToAnimate = 7 * this.squareSize;
     },
@@ -396,7 +409,6 @@ var VIEWER = {
     viewY: function (y) {
         return GAMEBOARD.addY(y, -GAMEBOARD.viewLow) * VIEWER.squareSize;
     },
-
     showSprite: function ($proto, x, y) {
         var $sprite = $proto.clone();
         x = (x + GAMEBOARD.sizeX) % GAMEBOARD.sizeX;
@@ -488,6 +500,25 @@ var VIEWER = {
                     'left': '-=' + dx * VIEWER.squareSize,
                     'bottom': '-=' + dy * VIEWER.squareSize
                 }, this.boardAnimOpt);
+                VIEWER.afterAnimDone(function () {
+                    VIEWER.$backdrops.each(function (i, e) {
+                        var left, bottom;
+                        e = $(e);
+                        left = parseInt(e.css('left'));
+                        bottom = parseInt(e.css('bottom'));
+                        console.log('left: ' + left);
+                        if (left < VIEWER.backdrops.leftTrigger) {
+                            console.log('adding ' + VIEWER.backdrops.additiveX);
+                            e.css('left', '+=' + VIEWER.backdrops.additiveX);
+                        } else if (left > VIEWER.backdrops.rightTrigger) {
+                            console.log('subtracting ' + VIEWER.backdrops.additiveX);
+                            e.css('left', '-=' + VIEWER.backdrops.additiveX);
+                        }
+                        if (bottom < VIEWER.backdrops.bottomTrigger) {
+                            e.css('bottom', '+=' + VIEWER.backdrops.additiveY);
+                        }
+                    });
+                });
             }
         )
         // redraw all out of bound elements (?)
@@ -500,6 +531,7 @@ var VIEWER = {
         alert('Game Over');
     },
     init: function () {
+        var i, j, shiftX, $backdropProto;
         // create elements
         VIEWER.$gamewindow = $('#gamewindow');
 
@@ -516,6 +548,27 @@ var VIEWER = {
 
         // calculate square size and set elements' sizes
         VIEWER.adjustBoardSize();
+        // generate and append backdrops
+        VIEWER.backdrops.leftTrigger = (GAMEBOARD.viewLeft - 2 * VIEWER.backdrops.x) * VIEWER.squareSize; // to compare with css "left"
+        VIEWER.backdrops.rightTrigger = (GAMEBOARD.viewLeft + GAMEBOARD.viewWidth + VIEWER.backdrops.x) * VIEWER.squareSize; // to compare with css "left"
+        VIEWER.backdrops.bottomTrigger = -VIEWER.backdrops.y * VIEWER.squareSize; // to compare with css "bottom"
+        VIEWER.backdrops.additiveX = VIEWER.backdrops.x * VIEWER.backdrops.i * VIEWER.squareSize; // +/- when moving backdrops
+        VIEWER.backdrops.additiveY = VIEWER.backdrops.y * VIEWER.backdrops.j * VIEWER.squareSize; // +/- when moving backdrops
+        shiftX = GAMEBOARD.viewLeft - Math.floor((VIEWER.backdrops.i * VIEWER.backdrops.x - GAMEBOARD.viewWidth) / 2);
+        $backdropProto = $('<div class="backdrop"></div>').css({
+            'width': VIEWER.backdrops.x * VIEWER.squareSize,
+            'height': VIEWER.backdrops.y * VIEWER.squareSize,
+            'background-size': (VIEWER.squareSize * 2).toString() + 'px ' + (VIEWER.squareSize * 2).toString() + 'px'
+        });
+        for (i = 0; i < VIEWER.backdrops.i; i++) {
+            for (j = 0; j < VIEWER.backdrops.j; j++) {
+                VIEWER.$gameboard.append($backdropProto.clone().css({
+                    'left': (shiftX + i * VIEWER.backdrops.x) * VIEWER.squareSize,
+                    'bottom': j * VIEWER.backdrops.y * VIEWER.squareSize
+                }));
+            }
+        }
+        VIEWER.$backdrops = VIEWER.$gameboard.find('.backdrop');
         // init game
         GAMEBOARD.initGame();
         // show elements
