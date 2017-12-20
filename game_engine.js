@@ -18,6 +18,7 @@ var GAMEBOARD = {
         perTurn: 0,
         perRow: 50,
         perPiece: {
+            'bishop': 200,
             'pawn': 100
         }
     },
@@ -88,11 +89,19 @@ var GAMEBOARD = {
                 GAMEBOARD.turn++;
                 GAMEBOARD.score += GAMEBOARD.scoreChart.perTurn;
                 VIEWER.updateScoreboard();
+                // first check if any piece can take player
                 var nextPiece = GAMEBOARD.pieces.head;
+                while (nextPiece) {
+                    nextPiece.takePlayerIfPossible_generic();
+                    nextPiece = nextPiece.next;
+                }
+                // then move pieces
+                nextPiece = GAMEBOARD.pieces.head;
                 while (nextPiece) {
                     nextPiece.move();
                     nextPiece = nextPiece.next;
                 }
+                // then add new pieces if needed
                 if (GAMEBOARD.pieceWasTaken) {
                     newPiece = GAMEBOARD.createPiece(GAMEBOARD.player.y);
                     GAMEBOARD.pieceWasTaken = false;
@@ -119,7 +128,7 @@ var GAMEBOARD = {
         }
     },
     piecePrototype: {
-        move: function () {
+        takePlayerIfPossible_generic: function () {
             var GameOver = function (piece) {
                 return {
                     message: 'Game Over',
@@ -127,10 +136,11 @@ var GAMEBOARD = {
                 }
             }
             if (GAMEBOARD.isVisible(this) && this.type.canTakePlayer(this)) {
-                // TODO: gameover
                 this.type.animatePlayerDeath(this);
                 throw GameOver(this);
             }
+        },
+        move: function () {
             var oldx, oldy;
             oldx = this.x;
             oldy = this.y;
@@ -184,7 +194,7 @@ var GAMEBOARD = {
 
     bishop: {
         prob: function (row) {
-            return 0.4;
+            return 0.05;
         },
         move_if_possible: function (piece) {
             var weCrossedLowView = function (newy, dy) {
@@ -208,20 +218,32 @@ var GAMEBOARD = {
             return true;
         },
         canTakePlayer (piece) {
-            // ---- removed: so that pawns take on every turn even if they don't move. Otherwise the game is easily beaten.
-            // if ((GAMEBOARD.turn + piece.y) % 2 === 0) {
-            //     return false;
-            // }
-            if (GAMEBOARD.addX(piece.x, -GAMEBOARD.player.x) === 1) {
-                if (GAMEBOARD.addY(piece.y, -GAMEBOARD.player.y) === 1) {
-                    return true;
-                }
-                // TODO: eat up
-                if (GAMEBOARD.addY(-piece.y, GAMEBOARD.player.y) === 1) {
-                    return true;
+            // recalculate coords relative to viewLeft,viewLow
+            var x1 = GAMEBOARD.addX(piece.x, -GAMEBOARD.viewLeft);
+            var y1 = GAMEBOARD.addY(piece.y, -GAMEBOARD.viewLow);
+            var x2 = GAMEBOARD.addX(GAMEBOARD.player.x, -GAMEBOARD.viewLeft);
+            var y2 = GAMEBOARD.addY(GAMEBOARD.player.y, -GAMEBOARD.viewLow);
+            // check if piece and player on the same diagonal
+            var dx = x2 - x1;
+            var dy = y2 - y1;
+            if (Math.abs(dx) !== Math.abs(dy)) {
+                //console.log("  " + dx + "!==" + dy);
+                return false;
+            }
+            // check if anything is between them
+            var i;
+            var x = piece.x;
+            var y = piece.y;
+            var signDy = Math.sign(dy);
+            var signDx = Math.sign(dx);
+            for (i = 1; i < Math.abs(dx); i++) {
+                x = GAMEBOARD.addX(x, signDx);
+                y = GAMEBOARD.addY(y, signDy);
+                if (GAMEBOARD.grid[x][y] !== null) {
+                    return false;
                 }
             }
-            return false;
+            return true;
         },
         animatePlayerDeath: function (piece) {
             // TODO
@@ -231,7 +253,7 @@ var GAMEBOARD = {
     },
 
     pieceExpectancy: function () {
-        return 0.5;
+        return 0.7;
     },
     decidePieceType: function (piece) {
         var i, t;
@@ -669,7 +691,8 @@ var VIEWER = {
     gameOver: function (piece) {
         // VIEWER.stopAllAnim(); - will inline for now
         VIEWER.$gamewindow.find().stop();
-        var x2, y1, y2, y3;
+        var x1, x2, y1, y2, y3;
+        x1 = VIEWER.viewX(piece.x);
         x2 = VIEWER.viewX(GAMEBOARD.player.x) - VIEWER.squareSize / 2;
         y1 = VIEWER.viewY(piece.y);
         y2 = VIEWER.viewY(GAMEBOARD.player.y);
@@ -683,11 +706,14 @@ var VIEWER = {
             'height': '+=' + VIEWER.squareSize
         }, VIEWER.endAnimOpt1);
         piece.$view.animate({'left': x2}, VIEWER.endAnimOpt2);
-        
-        
-
         // TODO
-        VIEWER.afterAnimDone(function () { alert('Game Over') });
+        VIEWER.afterAnimDone(function () {
+            alert('Game Over');
+            piece.$view.animate({
+                'left': x1 - VIEWER.squareSize / 2,
+                'bottom': y1 - VIEWER.squareSize / 2
+            }, VIEWER.endAnimOpt2);
+        });
     },
     init: function () {
         var i, j, shiftX, $backdropProto;
