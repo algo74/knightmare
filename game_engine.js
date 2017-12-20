@@ -111,7 +111,7 @@ var GAMEBOARD = {
             } catch (e) {
                 if (e.message === 'Game Over') {
                     GAMEBOARD.gameOver();
-                    VIEWER.gameOver();
+                    VIEWER.gameOver(e.piece);
                 }
             }
         } else {
@@ -120,10 +120,16 @@ var GAMEBOARD = {
     },
     piecePrototype: {
         move: function () {
+            var GameOver = function (piece) {
+                return {
+                    message: 'Game Over',
+                    piece: piece
+                }
+            }
             if (GAMEBOARD.isVisible(this) && this.type.canTakePlayer(this)) {
                 // TODO: gameover
                 this.type.animatePlayerDeath(this);
-                throw new Error('Game Over');
+                throw GameOver(this);
             }
             var oldx, oldy;
             oldx = this.x;
@@ -135,23 +141,112 @@ var GAMEBOARD = {
             }
         }
     },
+    piecesTypes: [],  // this has to be initialized in init ;(
+
+    pawn: {
+        prob: function (row) {
+            return 1;
+        },
+        move_if_possible: function (piece) {
+            if ((GAMEBOARD.turn + piece.y) % 2 === 0) {
+                return false;
+            }
+            var newx = (piece.x + GAMEBOARD.sizeX - 1) % GAMEBOARD.sizeX;
+            if (GAMEBOARD.grid[newx][piece.y] !== null) {
+                return false;
+            } else {
+                piece.x = newx;
+            }
+            return true;
+        },
+        canTakePlayer (piece) {
+            // ---- removed: so that pawns take on every turn even if they don't move. Otherwise the game is easily beaten.
+            // if ((GAMEBOARD.turn + piece.y) % 2 === 0) {
+            //     return false;
+            // }
+            if (GAMEBOARD.addX(piece.x, -GAMEBOARD.player.x) === 1) {
+                if (GAMEBOARD.addY(piece.y, -GAMEBOARD.player.y) === 1) {
+                    return true;
+                }
+                // TODO: eat up
+                if (GAMEBOARD.addY(-piece.y, GAMEBOARD.player.y) === 1) {
+                    return true;
+                }
+            }
+            return false;
+        },
+        animatePlayerDeath: function (piece) {
+            // TODO
+        },
+        $image: $("<img src='images/bpawn.png'>"),
+        name: 'pawn'
+    },
+
+    bishop: {
+        prob: function (row) {
+            return 0.4;
+        },
+        move_if_possible: function (piece) {
+            var weCrossedLowView = function (newy, dy) {
+                return GAMEBOARD.addY(newy, (1 - dy) / 2) === GAMEBOARD.viewLow;
+            }
+            var dy = piece.dy || ((GAMEBOARD.turn + piece.y) % 2 === 0 ? 1 : -1);
+            var newx = (piece.x + GAMEBOARD.sizeX - 1) % GAMEBOARD.sizeX;
+            var newy = GAMEBOARD.addY(piece.y, dy);
+            if ((GAMEBOARD.grid[newx][newy] !== null) || weCrossedLowView(newy, dy)) {
+                // can't move there - try move the other way
+                dy = -dy;
+                newy = GAMEBOARD.addY(piece.y, dy);
+                if ((GAMEBOARD.grid[newx][newy] !== null) || weCrossedLowView(newy, dy)) {
+                    // can't move there either - stay
+                    return false;
+                }
+            }
+            piece.dy = dy;
+            piece.x = newx;
+            piece.y = newy;
+            return true;
+        },
+        canTakePlayer (piece) {
+            // ---- removed: so that pawns take on every turn even if they don't move. Otherwise the game is easily beaten.
+            // if ((GAMEBOARD.turn + piece.y) % 2 === 0) {
+            //     return false;
+            // }
+            if (GAMEBOARD.addX(piece.x, -GAMEBOARD.player.x) === 1) {
+                if (GAMEBOARD.addY(piece.y, -GAMEBOARD.player.y) === 1) {
+                    return true;
+                }
+                // TODO: eat up
+                if (GAMEBOARD.addY(-piece.y, GAMEBOARD.player.y) === 1) {
+                    return true;
+                }
+            }
+            return false;
+        },
+        animatePlayerDeath: function (piece) {
+            // TODO
+        },
+        $image: $("<img src='images/bbishop.png'>"),
+        name: 'bishop'
+    },
+
     pieceExpectancy: function () {
-        return 0.8;
+        return 0.5;
     },
     decidePieceType: function (piece) {
+        var i, t;
+        var rnd = Math.random();
+        for (i = 0; i < GAMEBOARD.piecesTypes.length; i++) {
+            t = GAMEBOARD.piecesTypes[i];
+            if (rnd > t.prob(GAMEBOARD.maxRow)) {
+                // go go check other piece types
+                rnd -= t.prob;
+            } else {
+                piece.type = t;
+                return;
+            }
+        }
         piece.type = GAMEBOARD.pawn;
-    },
-    createRow: function (row) {
-        while (GAMEBOARD.createPieceAndShow(row)) {
-            // so far createPiece does all the work
-        };
-        GAMEBOARD.maxRow++;
-    },
-    createPieceAndShow: function (forRow) {
-        var newPiece = GAMEBOARD.createPiece(forRow);
-        if (!newPiece) return false;
-        VIEWER.showPiece(newPiece);
-        return true;
     },
     createPiece: function (forRow) {
         var x;
@@ -169,6 +264,18 @@ var GAMEBOARD = {
         GAMEBOARD.decidePieceType(newPiece);
         GAMEBOARD.addPiece2Board(newPiece);
         return newPiece;
+    },
+    createPieceAndShow: function (forRow) {
+        var newPiece = GAMEBOARD.createPiece(forRow);
+        if (!newPiece) return false;
+        VIEWER.showPiece(newPiece);
+        return true;
+    },
+    createRow: function (row) {
+        while (GAMEBOARD.createPieceAndShow(row)) {
+            // so far createPiece does all the work
+        };
+        GAMEBOARD.maxRow++;
     },
     addPiece2Board: function (newPiece) {
         // add the piece to the list
@@ -205,41 +312,6 @@ var GAMEBOARD = {
     destroyPiece: function (piece) {
         VIEWER.removePiece(piece);
         this.removePiece(piece);
-    },
-    pawn: {
-        move_if_possible: function (piece) {
-            if ((GAMEBOARD.turn + piece.y) % 2 === 0) {
-                return false;
-            }
-            var newx = (piece.x + GAMEBOARD.sizeX - 1) % GAMEBOARD.sizeX;
-            if (GAMEBOARD.grid[newx][piece.y] !== null) {
-                return false;
-            } else {
-                piece.x = newx;
-            }
-            return true;
-        },
-        canTakePlayer (piece) {
-            // ---- removed: so that pawns take on every turn even if they don't move. Otherwise the game is easily beaten.
-            // if ((GAMEBOARD.turn + piece.y) % 2 === 0) {
-            //     return false;
-            // }
-            if (GAMEBOARD.addX(piece.x, -GAMEBOARD.player.x) === 1) {
-                if (GAMEBOARD.addY(piece.y, -GAMEBOARD.player.y) === 1) {
-                    return true;
-                }
-                // TODO: eat up
-                if (GAMEBOARD.addY(-piece.y, GAMEBOARD.player.y) === 1) {
-                    return true;
-                }
-            }
-            return false;
-        },
-        animatePlayerDeath: function (piece) {
-            // TODO
-        },
-        $image: $("<img src='images/wpawn.png'>"),
-        name: 'pawn'
     },
     playerTakes: function (dx, dy) {
         GAMEBOARD.pieceWasTaken = true;
@@ -293,9 +365,8 @@ var GAMEBOARD = {
                 VIEWER.afterAnimDone(function () { GAMEBOARD.adjustBoardAfterPlayerMove(dx, dy) }); // it must also let pieces move after it finished
             }
         },
-
         type: {
-            $image: $("<img src='images/bknight.png'>")
+            $image: $("<img src='images/wknight.png'>")
                 .addClass('player'),
             moveList: [
                 { dx: 2,
@@ -385,6 +456,10 @@ var GAMEBOARD = {
                 g[x].push(null);
             }
         }
+        GAMEBOARD.piecesTypes = [
+            GAMEBOARD.bishop,
+            GAMEBOARD.pawn   // pawn must be last
+        ];
         GAMEBOARD.grid = g;
         GAMEBOARD.player.x = 12;
         GAMEBOARD.player.y = 2;
@@ -403,19 +478,34 @@ var GAMEBOARD = {
 
 var VIEWER = {
     pieceAnimOpt: {
-        'duration': 300,
+        'duration': 200,
         'easing': 'swing',
         'queue': false
     },
     playerAnimOpt: {
-        'duration': 100,
+        'duration': 50,
         'easing': 'swing',
         'queue': false
     },
     boardAnimOpt: {
-        'duration': 300,
+        'duration': 150,
         'easing': 'swing',
         'queue': false
+    },
+    endAnimOpt1: {
+        'duration': 1000,
+        'easing': 'easeInBounce',
+        'queue': false
+    },
+    endAnimOpt2: {
+        'duration': 3000,
+        'easing': 'swing',
+        'queue': false
+    },
+    endAnimOpt3: {
+        'duration': 1500,
+        'easing': 'swing',
+        'queue': true
     },
     backdrops: {
         i: 4,
@@ -576,9 +666,28 @@ var VIEWER = {
     startGame: function () {
         GAMEBOARD.startGame();
     },
-    gameOver: function () {
+    gameOver: function (piece) {
+        // VIEWER.stopAllAnim(); - will inline for now
+        VIEWER.$gamewindow.find().stop();
+        var x2, y1, y2, y3;
+        x2 = VIEWER.viewX(GAMEBOARD.player.x) - VIEWER.squareSize / 2;
+        y1 = VIEWER.viewY(piece.y);
+        y2 = VIEWER.viewY(GAMEBOARD.player.y);
+        y3 = Math.abs(y2 - y1) / 2 + VIEWER.squareSize + Math.max(y1, y2);
+        y2 -= VIEWER.squareSize / 2;
+        piece.$view.css('z-index', 100);
+        piece.$view.animate({'bottom': y3}, VIEWER.endAnimOpt3);
+        piece.$view.animate({'bottom': y2}, VIEWER.endAnimOpt3);
+        piece.$view.animate({
+            'width': '+=' + VIEWER.squareSize,
+            'height': '+=' + VIEWER.squareSize
+        }, VIEWER.endAnimOpt1);
+        piece.$view.animate({'left': x2}, VIEWER.endAnimOpt2);
+        
+        
+
         // TODO
-        alert('Game Over');
+        VIEWER.afterAnimDone(function () { alert('Game Over') });
     },
     init: function () {
         var i, j, shiftX, $backdropProto;
