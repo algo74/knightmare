@@ -12,6 +12,14 @@ var GAMEBOARD = {
     viewLeft: 5,
     viewRight: 19,
     viewWidth: 15,
+    score: 0,
+    scoreChart: {
+        perTurn: 10,
+        perRow: 50,
+        perPiece: {
+            'pawn': 100
+        }
+    },
     playerCannotMove: true,
     addjustMod: function (val, mod) {
         return (val + mod) % mod;
@@ -42,11 +50,13 @@ var GAMEBOARD = {
         GAMEBOARD.player.nextMove.wantMove = false;
         GAMEBOARD.maxRow = 0;
         GAMEBOARD.turn = 0;
+        GAMEBOARD.score = 0;
 
         // add pieces
         for (i = 0; i < GAMEBOARD.sizeY; i++) {
             this.createRow(i);
         }
+        GAMEBOARD.maxRow = 0; // kind of a hack because createRow increases it
     },
     startGame: function () {
         console.log('game started');
@@ -81,6 +91,8 @@ var GAMEBOARD = {
                 GAMEBOARD.playerCannotMove = true;
                 GAMEBOARD.piecesWantMove = false;
                 GAMEBOARD.turn++;
+                GAMEBOARD.score += GAMEBOARD.scoreChart.perTurn;
+                VIEWER.updateScoreboard();
                 console.log("pieces' turn");
                 var nextPiece = GAMEBOARD.pieces.head;
                 while (nextPiece) {
@@ -136,9 +148,10 @@ var GAMEBOARD = {
             return true;
         },
         canTakePlayer (piece) {
-            if ((GAMEBOARD.turn + piece.y) % 2 === 0) {
-                return false;
-            }
+            // ---- removed: so that pawns take on every turn even if they don't move. Otherwise the game is easily beaten.
+            // if ((GAMEBOARD.turn + piece.y) % 2 === 0) {
+            //     return false;
+            // }
             if (GAMEBOARD.addX(piece.x, -GAMEBOARD.player.x) === 1) {
                 if (GAMEBOARD.addY(piece.y, -GAMEBOARD.player.y) === 1) {
                     return true;
@@ -158,6 +171,8 @@ var GAMEBOARD = {
     },
     playerTakes: function (dx, dy) {
         var piece = GAMEBOARD.grid[GAMEBOARD.player.x][GAMEBOARD.player.y];
+        // update score
+        GAMEBOARD.score += GAMEBOARD.scoreChart.perPiece[piece.type.name];
         // first call viewer while we have reference to a piece
         VIEWER.playerTakes(dx, dy);
         // then remove the piece
@@ -326,8 +341,9 @@ var GAMEBOARD = {
         }
         VIEWER.adjustBoardAfterPlayerMove(dx, dy);
         VIEWER.afterAnimDone(function () {
-            // recreate rows
+            // recreate rows and update score
             for (i = dy; i > 0; i--) {
+                GAMEBOARD.score += GAMEBOARD.scoreChart.perRow;
                 row = GAMEBOARD.addY(GAMEBOARD.viewLow, -i);
                 // delete pieces in row
                 for (x = 0; x < GAMEBOARD.sizeX; x++) {
@@ -412,6 +428,16 @@ var VIEWER = {
     },
     viewY: function (y) {
         return GAMEBOARD.addY(y, -GAMEBOARD.viewLow) * VIEWER.squareSize;
+    },
+    updateScoreboard: function () {
+        var pad = function (n, width, z) {
+            z = z || '0';
+            n = n + '';
+            return n.length >= width ? n : new Array(width - n.length + 1).join(z) + n;
+        };
+        VIEWER.$infoTurn.text(pad(GAMEBOARD.turn, 5));
+        VIEWER.$infoRow.text(pad(GAMEBOARD.maxRow, 5));
+        VIEWER.$infoScore.text(pad(GAMEBOARD.score, 7));
     },
     showSprite: function ($proto, x, y) {
         var $sprite = $proto.clone();
@@ -537,6 +563,9 @@ var VIEWER = {
     init: function () {
         var i, j, shiftX, $backdropProto;
         // create elements
+        VIEWER.$infoTurn = $('#info-turn');
+        VIEWER.$infoRow = $('#info-row');
+        VIEWER.$infoScore = $('#info-score');
         VIEWER.$gamewindow = $('#gamewindow');
 
         VIEWER.$gamewindow.css({ // 'width':'100%',

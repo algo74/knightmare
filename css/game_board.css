@@ -5,7 +5,25 @@ img {
     
     position: absolute;
     
-    
+}
+
+#info-header {
+    text-align: center;
+    color: white;
+    font-size: 2em;
+}
+
+.infobloc {
+    display: inline-block;
+    margin: 1em 2em;
+}
+
+.infotext {
+    text-align: right;
+}
+
+#info-header .lable {
+    text-align: left;
 }
 
 .backdrop {
