@@ -6,6 +6,7 @@ var GAMEBOARD = {
         head: null,
         tail: null
     },
+    pieceWasTaken: false,
     viewLow: 0,
     viewHigh: 7,
     viewHeight: 8,
@@ -21,6 +22,7 @@ var GAMEBOARD = {
         }
     },
     playerCannotMove: true,
+    playerMovedBack: false,
     addjustMod: function (val, mod) {
         return (val + mod) % mod;
     },
@@ -29,14 +31,6 @@ var GAMEBOARD = {
     },
     addY: function (y, dy) {
         return this.addjustMod(y + dy, this.sizeY);
-    },
-    createRow: function (row) {
-        // console.log(" ---- row="+i);
-        while (GAMEBOARD.createPiece(row)) {
-            // so far createPiece does all the work
-            // console.log("piece created");
-        };
-        GAMEBOARD.maxRow++;
     },
     isVisible: function (piece) {
         return GAMEBOARD.addX(piece.x, -GAMEBOARD.viewLeft) < GAMEBOARD.viewWidth && GAMEBOARD.addY(piece.y, -GAMEBOARD.viewLow) < GAMEBOARD.viewHeight;
@@ -86,6 +80,7 @@ var GAMEBOARD = {
         return GAMEBOARD.player.nextMove.wantMove;
     },
     enqueuePiecesTurn: function () {
+        var newPiece;
         if (GAMEBOARD.piecesCanMove) {
             try {
                 GAMEBOARD.playerCannotMove = true;
@@ -93,16 +88,28 @@ var GAMEBOARD = {
                 GAMEBOARD.turn++;
                 GAMEBOARD.score += GAMEBOARD.scoreChart.perTurn;
                 VIEWER.updateScoreboard();
-                console.log("pieces' turn");
                 var nextPiece = GAMEBOARD.pieces.head;
                 while (nextPiece) {
                     nextPiece.move();
-                    // console.log('here');
                     nextPiece = nextPiece.next;
+                }
+                if (GAMEBOARD.pieceWasTaken) {
+                    newPiece = GAMEBOARD.createPiece(GAMEBOARD.player.y);
+                    GAMEBOARD.pieceWasTaken = false;
+                    if (newPiece) {
+                        VIEWER.flyInPiece(newPiece);
+                    }
+                }
+                if (GAMEBOARD.playerMovedBack) {
+                    newPiece = GAMEBOARD.createPiece(GAMEBOARD.addY(GAMEBOARD.player.y, 1));
+                    GAMEBOARD.playerMovedBack = false;
+                    if (newPiece) {
+                        VIEWER.flyInPiece(newPiece);
+                    }
                 }
                 VIEWER.afterAnimDone(GAMEBOARD.letPlayerMove);
             } catch (e) {
-                if (e === 'Game Over') {
+                if (e.message === 'Game Over') {
                     GAMEBOARD.gameOver();
                     VIEWER.gameOver();
                 }
@@ -116,7 +123,7 @@ var GAMEBOARD = {
             if (GAMEBOARD.isVisible(this) && this.type.canTakePlayer(this)) {
                 // TODO: gameover
                 this.type.animatePlayerDeath(this);
-                throw 'Game Over';
+                throw new Error('Game Over');
             }
             var oldx, oldy;
             oldx = this.x;
@@ -133,6 +140,71 @@ var GAMEBOARD = {
     },
     decidePieceType: function (piece) {
         piece.type = GAMEBOARD.pawn;
+    },
+    createRow: function (row) {
+        while (GAMEBOARD.createPieceAndShow(row)) {
+            // so far createPiece does all the work
+        };
+        GAMEBOARD.maxRow++;
+    },
+    createPieceAndShow: function (forRow) {
+        var newPiece = GAMEBOARD.createPiece(forRow);
+        if (!newPiece) return false;
+        VIEWER.showPiece(newPiece);
+        return true;
+    },
+    createPiece: function (forRow) {
+        var x;
+        var newPiece;
+        // randomly generate a piece until we give up or get one that can be on the board
+        do {
+            if (Math.random() > GAMEBOARD.pieceExpectancy()) {
+                return false;
+            }
+            x = Math.floor(Math.random() * GAMEBOARD.sizeX);
+        } while (GAMEBOARD.grid[x][forRow] !== null);
+        newPiece = Object.create(GAMEBOARD.piecePrototype);
+        newPiece.x = x;
+        newPiece.y = forRow;
+        GAMEBOARD.decidePieceType(newPiece);
+        GAMEBOARD.addPiece2Board(newPiece);
+        return newPiece;
+    },
+    addPiece2Board: function (newPiece) {
+        // add the piece to the list
+        newPiece.prev = GAMEBOARD.pieces.tail;
+        newPiece.next = null;
+        if (GAMEBOARD.pieces.tail) {
+            GAMEBOARD.pieces.tail.next = newPiece;
+            GAMEBOARD.pieces.tail = newPiece;
+        } else {
+            GAMEBOARD.pieces.head = newPiece;
+            GAMEBOARD.pieces.tail = newPiece;
+        }
+        // add the piece to the board grid
+        GAMEBOARD.grid[newPiece.x][newPiece.y] = newPiece;
+    },
+    removePiece: function (piece) {
+        // TODO: if piece is destroyed it should be removed from view
+        //      now it is removed only when it is taken
+        // remove piece from list
+        if (piece.next) {
+            piece.next.prev = piece.prev;
+        } else {
+            this.pieces.tail = piece.prev;
+        }
+        if (piece.prev) {
+            piece.prev.next = piece.next;
+        } else {
+            this.pieces.head = piece.next;
+        }
+        // remove piece from grid
+        GAMEBOARD.grid[piece.x][piece.y] = null;
+        // TODO: recreate piece
+    },
+    destroyPiece: function (piece) {
+        VIEWER.removePiece(piece);
+        this.removePiece(piece);
     },
     pawn: {
         move_if_possible: function (piece) {
@@ -170,6 +242,7 @@ var GAMEBOARD = {
         name: 'pawn'
     },
     playerTakes: function (dx, dy) {
+        GAMEBOARD.pieceWasTaken = true;
         var piece = GAMEBOARD.grid[GAMEBOARD.player.x][GAMEBOARD.player.y];
         // update score
         GAMEBOARD.score += GAMEBOARD.scoreChart.perPiece[piece.type.name];
@@ -197,7 +270,6 @@ var GAMEBOARD = {
             if (GAMEBOARD.playerCannotMove) {
                 return false;
             }
-            console.log('player moves');
             var nextMove = GAMEBOARD.player.nextMove;
             var dx, dy;
             if (nextMove.wantMove) {
@@ -212,7 +284,6 @@ var GAMEBOARD = {
                 GAMEBOARD.player.y = GAMEBOARD.addY(GAMEBOARD.player.y, dy);
                 // check if player takes a piece
                 if (GAMEBOARD.grid[GAMEBOARD.player.x][GAMEBOARD.player.y] !== null) {
-                    console.log('player takes ' + GAMEBOARD.grid[GAMEBOARD.player.x][GAMEBOARD.player.y].type.name);
                     GAMEBOARD.playerTakes(dx, dy);
                 } else {
                     // player does not take but just moves
@@ -260,74 +331,21 @@ var GAMEBOARD = {
                     GAMEBOARD.player.nextMove.dx = dx;
                     GAMEBOARD.player.nextMove.dy = dy;
                     GAMEBOARD.player.nextMove.wantMove = true;
-                    console.log('player will move to ' + dx + ',' + dy);
                     GAMEBOARD.player.enqueuePlayerMove();
                 }
             },
             name: 'knight'
         }
     },
-    addPiece2Board: function (newPiece) {
-        // add the piece to the list
-        newPiece.prev = GAMEBOARD.pieces.tail;
-        newPiece.next = null;
-        if (GAMEBOARD.pieces.tail) {
-            GAMEBOARD.pieces.tail.next = newPiece;
-            GAMEBOARD.pieces.tail = newPiece;
-        } else {
-            GAMEBOARD.pieces.head = newPiece;
-            GAMEBOARD.pieces.tail = newPiece;
-        }
-        // add the piece to the board grid
-        GAMEBOARD.grid[newPiece.x][newPiece.y] = newPiece;
-    },
-    createPiece: function (forRow) {
-        var x;
-        var newPiece;
-        // randomly generate a piece until we give up or get one that can be on the board
-        do {
-            if (Math.random() > GAMEBOARD.pieceExpectancy()) {
-                return false;
-            }
-            x = Math.floor(Math.random() * GAMEBOARD.sizeX);
-            // console.log("x="+x);
-        } while (GAMEBOARD.grid[x][forRow] !== null);
-        newPiece = Object.create(GAMEBOARD.piecePrototype);
-        newPiece.x = x;
-        newPiece.y = forRow;
-        GAMEBOARD.decidePieceType(newPiece);
-        GAMEBOARD.addPiece2Board(newPiece);
-        VIEWER.showPiece(newPiece);
-        return true;
-    },
-    removePiece: function (piece) {
-        console.log('removing piece');
-        // TODO: if piece is destroyed it should be removed from view
-        //      now it is removed only when it is taken
-        // remove piece from list
-        if (piece.next) {
-            piece.next.prev = piece.prev;
-        } else {
-            this.pieces.tail = piece.prev;
-        }
-        if (piece.prev) {
-            piece.prev.next = piece.next;
-        } else {
-            this.pieces.head = piece.next;
-        }
-        // remove piece from grid
-        GAMEBOARD.grid[piece.x][piece.y] = null;
-        // TODO: recreate piece
-    },
-    destroyPiece: function (piece) {
-        VIEWER.removePiece(piece);
-        this.removePiece(piece);
-    },
     adjustBoardAfterPlayerMove: function (dx, dy) {
         // called during player's move
         // must let pieces move after finished
         var adjDy;
         var i, row, x;
+        // did the player move back?
+        if (dy < 0) {
+            GAMEBOARD.playerMovedBack = true;
+        }
         this.viewLeft = this.addX(this.viewLeft, dx);
         this.viewRight = this.addX(this.viewRight, dx);
         // y axis is harder: only move if player is more than 2 squares ahead
@@ -474,6 +492,13 @@ var VIEWER = {
     showPiece: function (piece) {
         piece.$view = VIEWER.showSprite(piece.type.$image, piece.x, piece.y);
     },
+    flyInPiece: function (piece) {
+        piece.$view = VIEWER.showSprite(piece.type.$image, (GAMEBOARD.viewLeft + GAMEBOARD.viewRight / 2), GAMEBOARD.viewHigh + 1);
+        piece.$view.animate({
+            'left': VIEWER.viewX(piece.x),
+            'bottom': VIEWER.viewY(piece.y)
+        }, this.pieceAnimOpt);
+    },
     removePiece: function (piece) {
         piece.$view.remove();
     },
@@ -487,7 +512,6 @@ var VIEWER = {
         // don't animate jumps
         if (Math.abs(x - parseInt($view.css('left'))) > this.maxJumpToAnimate || Math.abs(y - parseInt($view.css('bottom'))) > this.maxJumpToAnimate) {
             // no animation
-            console.log('no animation');
             $view.css({
                 'left': x,
                 'bottom': y
@@ -516,7 +540,6 @@ var VIEWER = {
         });
     },
     playerTakes: function (dx, dy) {
-        console.log('viewer playerTakes: ' + dx + ',' + dy);
         VIEWER.playerMoves(dx, dy);
         VIEWER.removePiece(GAMEBOARD.grid[GAMEBOARD.player.x][GAMEBOARD.player.y]);
     },
@@ -536,12 +559,9 @@ var VIEWER = {
                         e = $(e);
                         left = parseInt(e.css('left'));
                         bottom = parseInt(e.css('bottom'));
-                        console.log('left: ' + left);
                         if (left < VIEWER.backdrops.leftTrigger) {
-                            console.log('adding ' + VIEWER.backdrops.additiveX);
                             e.css('left', '+=' + VIEWER.backdrops.additiveX);
                         } else if (left > VIEWER.backdrops.rightTrigger) {
-                            console.log('subtracting ' + VIEWER.backdrops.additiveX);
                             e.css('left', '-=' + VIEWER.backdrops.additiveX);
                         }
                         if (bottom < VIEWER.backdrops.bottomTrigger) {
