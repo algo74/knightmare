@@ -14,7 +14,7 @@ var GAMEBOARD = {
     viewWidth: 15,
     score: 0,
     scoreChart: {
-        perTurn: 10,
+        perTurn: 0,
         perRow: 50,
         perPiece: {
             'pawn': 100
