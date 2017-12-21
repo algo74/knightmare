@@ -26,6 +26,10 @@ var GAMEBOARD = {
     }
   },
   playerCannotMove: true,
+  allowPlayerToMove: function (allow) {
+    this.playerCannotMove = !allow;
+    VIEWER.displayPlayerMove(allow);
+  },
   playerMovedBack: false,
   addjustMod: function (val, mod) {
     return (val + mod) % mod;
@@ -48,7 +52,7 @@ var GAMEBOARD = {
   initGame: function () {
     var i;
     GAMEBOARD.initBoard();
-    GAMEBOARD.playerCannotMove = false;
+    GAMEBOARD.allowPlayerToMove(true);
     GAMEBOARD.piecesCanMove = true;
     GAMEBOARD.piecesWantMove = false;
     GAMEBOARD.player.nextMove.wantMove = false;
@@ -81,7 +85,7 @@ var GAMEBOARD = {
     }
   },
   letPlayerMove: function () {
-    GAMEBOARD.playerCannotMove = false;
+    GAMEBOARD.allowPlayerToMove(true);
     if (GAMEBOARD.playerWantsMove()) {
       GAMEBOARD.player.enqueuePlayerMove();
     }
@@ -93,7 +97,7 @@ var GAMEBOARD = {
     var newPiece;
     if (GAMEBOARD.piecesCanMove) {
       try {
-        GAMEBOARD.playerCannotMove = true;
+        GAMEBOARD.allowPlayerToMove(false);
         GAMEBOARD.piecesWantMove = false;
         GAMEBOARD.turn++;
         GAMEBOARD.score += GAMEBOARD.scoreChart.perTurn;
@@ -558,7 +562,7 @@ var GAMEBOARD = {
           // player does not take but just moves
           GAMEBOARD.playerMoves(dx, dy);
         }
-        GAMEBOARD.playerCannotMove = true;
+        GAMEBOARD.allowPlayerToMove(false);
         VIEWER.afterAnimDone(function () { GAMEBOARD.adjustBoardAfterPlayerMove(dx, dy) }); // it must also let pieces move after it finished
       }
     },
@@ -891,6 +895,13 @@ var VIEWER = {
         'bottom': y1 - VIEWER.squareSize / 2
       }, VIEWER.endAnimOpt2);
     });
+  },
+  displayPlayerMove: function (bool) {
+    if (bool) {
+      this.$gamewindow.css('border-color', 'white');
+    } else {
+      this.$gamewindow.css('border-color', 'black');
+    }
   },
   init: function () {
     var i, j, shiftX, $backdropProto;
