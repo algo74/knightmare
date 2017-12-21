@@ -1,7 +1,7 @@
 module.exports = {
     "extends": "standard",
     "rules": {
-        "indent": ["error",4],
+        "indent": ["error",2],
         "semi":0,
         "no-multi-spaces": [2, { "ignoreEOLComments": true }]
     },
