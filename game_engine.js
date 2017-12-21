@@ -18,7 +18,10 @@ var GAMEBOARD = {
     perTurn: 0,
     perRow: 50,
     perPiece: {
-      'bishop': 200,
+      'bishop': 300,
+      'knight': 500,
+      'rook': 500,
+      'queen': 1000,
       'pawn': 100
     }
   },
@@ -339,6 +342,84 @@ var GAMEBOARD = {
     name: 'knight'
   },
 
+  rook: {
+    prob: function (row) {
+      return 0.1;
+    },
+    move_if_possible: function (piece) {
+      var doMove = function (x, y) {
+        if (GAMEBOARD.grid[x][y] !== null) {
+          return false;
+        } else {
+          piece.x = x;
+          piece.y = y;
+          return true;
+        }
+      }
+      // first try to move forward
+      if (doMove(GAMEBOARD.addX(piece.x, -1), piece.y)) {
+        return true;
+      }
+      // then try to move down
+      // but only if it won't cross the lower view border
+      if (piece.y !== GAMEBOARD.viewLow && doMove(piece.x, GAMEBOARD.addY(piece.y, -1))) {
+        return true;
+      }
+      // then try to move up
+      // but only if it won't cross the lower view border
+      var newy = GAMEBOARD.addY(piece.y, 1);
+      if (newy !== GAMEBOARD.viewLow && doMove(piece.x, newy)) {
+        return true;
+      }
+      // then give up
+      return false;
+    },
+    canTakePlayer (piece) {
+      var x1, x2, y1, y2, i, x, y;
+      // case 1: same x
+      if (piece.x === GAMEBOARD.player.x) {
+        // recalculate coords relative to viewLeft,viewLow
+        y1 = GAMEBOARD.addY(piece.y, -GAMEBOARD.viewLow);
+        y2 = GAMEBOARD.addY(GAMEBOARD.player.y, -GAMEBOARD.viewLow);
+        // check if anything is between them
+        x = piece.x;
+        y = GAMEBOARD.addY(Math.min(y1, y2), GAMEBOARD.viewLow);
+        for (i = 1; i < Math.abs(y1 - y2); i++) {
+          y = GAMEBOARD.addY(y, 1);
+          if (GAMEBOARD.grid[x][y] !== null) {
+            return false;
+          }
+        }
+        // so, nothing is between them...
+        return true;
+      }
+      // case 2: same y
+      if (piece.y === GAMEBOARD.player.y) {
+        // recalculate coords relative to viewLeft,viewLow
+        x1 = GAMEBOARD.addX(piece.x, -GAMEBOARD.viewLeft);
+        x2 = GAMEBOARD.addX(GAMEBOARD.player.x, -GAMEBOARD.viewLeft);
+        // check if anything is between them
+        x = GAMEBOARD.addX(Math.min(x1, x2), GAMEBOARD.viewLeft);
+        y = piece.y;
+        for (i = 1; i < Math.abs(x1 - x2); i++) {
+          x = GAMEBOARD.addX(x, 1);
+          if (GAMEBOARD.grid[x][y] !== null) {
+            return false;
+          }
+        }
+        // so, nothing is between them...
+        return true;
+      }
+      // case 3: neither
+      return false;
+    },
+    animatePlayerDeath: function (piece) {
+      // TODO
+    },
+    $image: $("<img src='images/brook.png'>"),
+    name: 'rook'
+  },
+
   pieceExpectancy: function () {
     return 0.7;
   },
@@ -569,6 +650,7 @@ var GAMEBOARD = {
     GAMEBOARD.piecesTypes = [
       GAMEBOARD.bishop,
       GAMEBOARD.knight,
+      GAMEBOARD.rook,
       GAMEBOARD.pawn   // pawn must be last
     ];
     GAMEBOARD.grid = g;
