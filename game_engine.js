@@ -354,7 +354,7 @@ var GAMEBOARD = {
 
   rook: {
     prob: function (row) {
-      return 0.1;
+      return 0.025;
     },
     move_if_possible: function (piece) {
       var doMove = function (x, y) {
@@ -428,6 +428,65 @@ var GAMEBOARD = {
     },
     $image: $("<img src='images/brook.png'>"),
     name: 'rook'
+  },
+
+  queen: {
+    prob: function (row) {
+      return 0.1;
+    },
+    move_if_possible: function (piece) {
+      var doMove = function (x, y) {
+        if (GAMEBOARD.grid[x][y] !== null) {
+          return false;
+        } else {
+          piece.x = x;
+          piece.y = y;
+          return true;
+        }
+      }
+      var newy;
+      // first try to move forward
+      if (doMove(GAMEBOARD.addX(piece.x, -1), piece.y)) {
+        return true;
+      }
+      // then try to move down-forward
+      // but only if it won't cross the lower view border
+      if (piece.y !== GAMEBOARD.viewLow && doMove(GAMEBOARD.addX(piece.x, -1), GAMEBOARD.addY(piece.y, -1))) {
+        return true;
+      }
+      // then try to move up-forward
+      // but only if it won't cross the lower view border
+      newy = GAMEBOARD.addY(piece.y, 1);
+      if (newy !== GAMEBOARD.viewLow && doMove(GAMEBOARD.addX(piece.x, -1), newy)) {
+        return true;
+      }
+      // then try to move down
+      // but only if it won't cross the lower view border
+      if (piece.y !== GAMEBOARD.viewLow && doMove(piece.x, GAMEBOARD.addY(piece.y, -1))) {
+        return true;
+      }
+      // then try to move up
+      // but only if it won't cross the lower view border
+      newy = GAMEBOARD.addY(piece.y, 1);
+      if (newy !== GAMEBOARD.viewLow && doMove(piece.x, newy)) {
+        return true;
+      }
+      // then give up
+      return false;
+    },
+    canTakePlayer (piece) {
+      // either take as a rook
+      if (GAMEBOARD.rook.canTakePlayer(piece)) {
+        return true;
+      }
+      // or as a bishop
+      return GAMEBOARD.bishop.canTakePlayer(piece);
+    },
+    animatePlayerDeath: function (piece) {
+      // TODO
+    },
+    $image: $("<img src='images/bqueen.png'>"),
+    name: 'queen'
   },
 
   pieceExpectancy: function () {
@@ -661,6 +720,7 @@ var GAMEBOARD = {
       GAMEBOARD.bishop,
       GAMEBOARD.knight,
       GAMEBOARD.rook,
+      GAMEBOARD.queen,
       GAMEBOARD.pawn   // pawn must be last
     ];
     GAMEBOARD.grid = g;
