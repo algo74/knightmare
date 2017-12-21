@@ -1,4 +1,4 @@
-
+/* eslint-disable */
 
 describe("Test suit", function() {
 
@@ -8,10 +8,40 @@ describe("Test suit", function() {
   });
 });
 
+describe('GAMEBOARD: helper functions', function () {
+
+  beforeEach(function () {
+    //VIEWER.showPiece = function(piece) {console.log('showing a piece'+ piece)};
+    //GAMEBOARD.createRow = function () {}; // let's have no pieces
+    GAMEBOARD.initBoard();
+  });
+
+  it('implements addX properly', function () {
+    expect(GAMEBOARD.addX(1, 1)).toEqual(2);
+    expect(GAMEBOARD.addX(1,-1)).toEqual(0);
+    expect(GAMEBOARD.addX(1,GAMEBOARD.sizeX-1)).toEqual(0);
+    expect(GAMEBOARD.addX(0,0)).toEqual(0);
+    expect(GAMEBOARD.addX(25,0)).toEqual(0);
+    expect(GAMEBOARD.addX(0,-24)).toEqual(1);
+    expect(GAMEBOARD.addX(0,-25)).toEqual(0);
+    var i, j;
+    for (i=1; i<GAMEBOARD.sizeX; i++) {
+      for (j=1; j<GAMEBOARD.sizeX; j++) {
+        expect(GAMEBOARD.addX(GAMEBOARD.addX(j,-i),i)).toEqual(j);
+      }
+      
+    }
+  });
+  
+});
+
+
 describe("GAMEBOARD.createPiece", function() {
 
   beforeEach(function() {
-    VIEWER.showPiece = function() {console.log('showning a piece')};
+    VIEWER.showPiece = function() { 
+      // console.log('showing a piece in GAMEBOARD.createPiece')
+    };
   });
 
   it('adds created pieces to grid and pieces list', function() {
@@ -37,6 +67,19 @@ describe("GAMEBOARD.createPiece", function() {
     expect(nP_inG).toEqual(nP_inL+1);
   });
 
+});
+
+describe('GAMEBOARD: player movement', function () {
+
+  beforeEach(function () {
+    VIEWER.showPiece = function(piece) {console.log('showing a piece'+ piece)};
+    GAMEBOARD.createRow = function () {}; // let's have no pieces
+    GAMEBOARD.initGame();
+  });
+
+  it('properly updates view variables', function () {
+    expect(0).toEqual(0);
+  })
 });
 
 

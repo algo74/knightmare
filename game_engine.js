@@ -37,7 +37,13 @@ var GAMEBOARD = {
     return this.addjustMod(y + dy, this.sizeY);
   },
   isVisible: function (piece) {
-    return GAMEBOARD.addX(piece.x, -GAMEBOARD.viewLeft) < GAMEBOARD.viewWidth && GAMEBOARD.addY(piece.y, -GAMEBOARD.viewLow) < GAMEBOARD.viewHeight;
+    // console.log("viewLeft: "+GAMEBOARD.viewLeft);
+    // if ((GAMEBOARD.addX(piece.x, -GAMEBOARD.viewLeft) < GAMEBOARD.viewWidth) && (GAMEBOARD.addY(piece.y, -GAMEBOARD.viewLow) < GAMEBOARD.viewHeight)) {
+    //   piece.$view.css('border', '2px solid red');
+    // } else {
+    //   piece.$view.css('border', '');
+    // }
+    return (GAMEBOARD.addX(piece.x, -GAMEBOARD.viewLeft) < GAMEBOARD.viewWidth) && (GAMEBOARD.addY(piece.y, -GAMEBOARD.viewLow) < GAMEBOARD.viewHeight);
   },
   initGame: function () {
     var i;
@@ -139,7 +145,7 @@ var GAMEBOARD = {
         }
       }
       if (GAMEBOARD.isVisible(this) && this.type.canTakePlayer(this)) {
-        this.type.animatePlayerDeath(this);
+        // this.type.animatePlayerDeath(this);
         throw GameOver(this);
       }
     },
@@ -664,7 +670,7 @@ var GAMEBOARD = {
     };
     GAMEBOARD.viewLow = 0;
     GAMEBOARD.viewHigh = 7;
-    GAMEBOARD.viewLeft = 0;
+    GAMEBOARD.viewLeft = 5;
     GAMEBOARD.viewRight = 19;
   }
 };
@@ -719,7 +725,7 @@ var VIEWER = {
     VIEWER.$gameboard.css({
       'width': GAMEBOARD.sizeX * VIEWER.squareSize,
       'height': GAMEBOARD.sizeY * VIEWER.squareSize,
-      'left': -GAMEBOARD.viewLeft * VIEWER.squareSize,
+      'left': 0,
       'bottom': 0
     });
     this.maxJumpToAnimate = 7 * this.squareSize;
