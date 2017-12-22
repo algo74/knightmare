@@ -25,6 +25,65 @@ var GAMEBOARD = {
       'pawn': 100
     }
   },
+  gamePlan: {
+    curValues: [0, 0, 0, 0, 0, 0],
+    curStep: [0, 0, 0, 0, 0, 0],
+    curStepRow: 0,
+    curStepN: 0,
+
+    /* eslint-disable no-multi-spaces */
+    steps: [
+      [10, 30, 0, 0, 0, 0],
+      [30, 70, 0, 0, 0, 0],
+      [20, 60, 5, 0, 0, 0],
+      [20, 80, 0, 0, 0, 0],
+      [10, 80, 0, 0, 0, 0],
+      [20, 65, 0, 5, 0, 0],
+      [10, 75, 0, 0, 0, 0],
+      [20, 70, 0, 0, 4, 0],
+      [10, 75, 0, 0, 0, 0],
+      [20, 70, 0, 0, 0, 2],
+      [10, 80, 0, 0, 0, 0],
+      [200, 90, 5, 5, 3, 1]
+    ],
+    /* eslint-enable no-multi-spaces */
+    legend: {
+      'expectancy': 1,
+      'bishop': 2,
+      'knight': 3,
+      'rook': 4,
+      'queen': 5
+    },
+    getParam: function (column, row) {
+      if (row <= this.curStepRow) {
+        // reinit values
+        this.curValues = [0, 0, 0, 0, 0, 0];
+        this.curStep = this.steps[0];
+        this.curStepRow = 0;
+        this.curStepN = 0;
+      }
+      var adjRow = row - this.curStepRow;
+      while (adjRow > this.curStep[0]) {
+        if (this.curStepN === this.steps.length - 1) {
+          // we are at the end of the game plan - return the last value of the game plan for the rest of the game
+          return this.curStep[column];
+        }
+        this.curStepRow += this.curStep[0];
+        adjRow -= this.curStep[0];
+        this.curValues = this.curStep;
+        this.curStepN += 1;
+        this.curStep = this.steps[this.curStepN];
+      }
+      // interpolate value
+      return this.curValues[column] + (this.curStep[column] - this.curValues[column]) * (adjRow / this.curStep[0]);
+    },
+    getTypeFreq: function (row, type) {
+      return this.getParam(this.legend[type], row) / 100;
+    },
+    getPieceExpectancy: function (row) {
+      return this.getParam(1, row) / 100;
+    }
+  },
   playerCannotMove: true,
   allowPlayerToMove: function (allow) {
     this.playerCannotMove = !allow;
@@ -64,7 +123,7 @@ var GAMEBOARD = {
     for (i = 0; i < GAMEBOARD.sizeY; i++) {
       this.createRow(i);
     }
-    GAMEBOARD.maxRow = 0; // kind of a hack because createRow increases it
+    // GAMEBOARD.maxRow = 0; // kind of a hack because createRow increases it
   },
   startGame: function () {
     console.log('game started');
@@ -207,7 +266,7 @@ var GAMEBOARD = {
 
   bishop: {
     prob: function (row) {
-      return 0.05;
+      return GAMEBOARD.gamePlan.getTypeFreq(row, 'bishop');
     },
     move_if_possible: function (piece) {
       var weCrossedLowView = function (newy, dy) {
@@ -267,7 +326,7 @@ var GAMEBOARD = {
 
   knight: {
     prob: function (row) {
-      return 0.05;
+      return GAMEBOARD.gamePlan.getTypeFreq(row, 'knight');
     },
     moveList: [
       { dx: -2,
@@ -354,7 +413,7 @@ var GAMEBOARD = {
 
   rook: {
     prob: function (row) {
-      return 0.025;
+      return GAMEBOARD.gamePlan.getTypeFreq(row, 'rook');
     },
     move_if_possible: function (piece) {
       var doMove = function (x, y) {
@@ -432,7 +491,7 @@ var GAMEBOARD = {
 
   queen: {
     prob: function (row) {
-      return 0.1;
+      return GAMEBOARD.gamePlan.getTypeFreq(row, 'queen');
     },
     move_if_possible: function (piece) {
       var doMove = function (x, y) {
@@ -489,8 +548,8 @@ var GAMEBOARD = {
     name: 'queen'
   },
 
-  pieceExpectancy: function () {
-    return 0.7;
+  pieceExpectancy: function (row) {
+    return GAMEBOARD.gamePlan.getPieceExpectancy(row);
   },
   decidePieceType: function (piece) {
     var i, t, tprob;
@@ -513,7 +572,7 @@ var GAMEBOARD = {
     var newPiece;
     // randomly generate a piece until we give up or get one that can be on the board
     do {
-      if (Math.random() > GAMEBOARD.pieceExpectancy()) {
+      if (Math.random() > GAMEBOARD.pieceExpectancy(GAMEBOARD.maxRow)) {
         return false;
       }
       x = Math.floor(Math.random() * GAMEBOARD.sizeX);

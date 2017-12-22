@@ -35,12 +35,93 @@ describe('GAMEBOARD: helper functions', function () {
   
 });
 
+describe('GAMEBOARD: gamePlan', function () {
+
+  beforeEach(function () {
+    //VIEWER.showPiece = function(piece) {console.log('showing a piece'+ piece)};
+    //GAMEBOARD.createRow = function () {}; // let's have no pieces
+    GAMEBOARD.initBoard();
+    GAMEBOARD.gamePlan.steps = [
+      [10, 0,   0, 0, 0, 0], 
+      [40, 0.7, 0, 0, 0, 0], // 50
+      [20, 0.7, 5, 0, 0, 0], // 70
+      [20, 0.8, 0, 0, 0, 0], // 90
+      [10, 0.8, 0, 0, 0, 0], //100
+      [20, 0.7, 0, 5, 0, 0], //120
+      [10, 0.7, 0, 0, 0, 0], //130
+      [20, 0.7, 0, 0, 4, 0], //150
+      [10, 0.7, 0, 0, 0, 0], //160
+      [20, 0.7, 0, 0, 0, 2], //180
+      [10, 0.7, 0, 0, 0, 0], //190
+      [200, 0.9, 5, 5, 3, 1] //390
+    ];
+  });
+
+
+  it('getPieceExpectancy: works with zero correctly', function () {
+    expect(GAMEBOARD.gamePlan.getPieceExpectancy(0)).toEqual(0);
+    GAMEBOARD.gamePlan.getPieceExpectancy(1000);
+    expect(GAMEBOARD.gamePlan.getPieceExpectancy(0)).toEqual(0);
+    
+  });
+
+  it('getPieceExpectancy: works forward correctly', function () {
+    expect(GAMEBOARD.gamePlan.getPieceExpectancy(1)).toEqual(0);
+    expect(GAMEBOARD.gamePlan.getPieceExpectancy(10)).toEqual(0);
+    expect(GAMEBOARD.gamePlan.getPieceExpectancy(50)).toEqual(0.7);
+    expect(GAMEBOARD.gamePlan.getPieceExpectancy(70)).toEqual(0.7);
+    expect(GAMEBOARD.gamePlan.getPieceExpectancy(90)).toEqual(0.8);
+    expect(GAMEBOARD.gamePlan.getPieceExpectancy(120)).toEqual(0.7);
+  });
+
+  it('getPieceExpectancy: works backward correctly', function () {
+    expect(GAMEBOARD.gamePlan.getPieceExpectancy(120)).toEqual(0.7);
+    expect(GAMEBOARD.gamePlan.getPieceExpectancy(90)).toEqual(0.8);
+    expect(GAMEBOARD.gamePlan.getPieceExpectancy(70)).toEqual(0.7);
+    expect(GAMEBOARD.gamePlan.getPieceExpectancy(50)).toEqual(0.7);
+    expect(GAMEBOARD.gamePlan.getPieceExpectancy(10)).toEqual(0);
+    expect(GAMEBOARD.gamePlan.getPieceExpectancy(1)).toEqual(0);
+    
+  });
+  
+  it('getPieceExpectancy: interpolates correctly', function () {
+    expect(GAMEBOARD.gamePlan.getPieceExpectancy(1)).toEqual(0);
+    expect(GAMEBOARD.gamePlan.getPieceExpectancy(2)).toEqual(0);
+    expect(GAMEBOARD.gamePlan.getPieceExpectancy(5)).toEqual(0);
+    expect(GAMEBOARD.gamePlan.getPieceExpectancy(9)).toEqual(0);
+    expect(GAMEBOARD.gamePlan.getPieceExpectancy(70)).toEqual(0.7);
+    expect(GAMEBOARD.gamePlan.getPieceExpectancy(80)).toEqual(0.75);
+    expect(GAMEBOARD.gamePlan.getPieceExpectancy(90)).toEqual(0.8);
+    expect(GAMEBOARD.gamePlan.getPieceExpectancy(110)).toEqual(0.75);
+    expect(GAMEBOARD.gamePlan.getPieceExpectancy(120)).toEqual(0.7);
+  });
+
+  it('getPieceExpectancy: manages infinity correctly', function () {
+    expect(GAMEBOARD.gamePlan.getPieceExpectancy(1120)).toEqual(0.9);
+  });
+
+  it('getTypeFreq: also works correctly', function () {
+    expect(GAMEBOARD.gamePlan.getTypeFreq(50,'bishop')).toEqual(0);
+    expect(GAMEBOARD.gamePlan.getTypeFreq(70,'bishop')).toEqual(5);
+    expect(GAMEBOARD.gamePlan.getTypeFreq(54,'bishop')).toEqual(1);
+    expect(GAMEBOARD.gamePlan.getTypeFreq(130,'bishop')).toEqual(0);
+    expect(GAMEBOARD.gamePlan.getTypeFreq(1170,'bishop')).toEqual(5);
+    expect(GAMEBOARD.gamePlan.getTypeFreq(1170,'knight')).toEqual(5);
+    expect(GAMEBOARD.gamePlan.getTypeFreq(1170,'rook')).toEqual(3);
+    expect(GAMEBOARD.gamePlan.getTypeFreq(1170,'queen')).toEqual(1);
+  });
+
+
+});
 
 describe("GAMEBOARD.createPiece", function() {
 
   beforeEach(function() {
     VIEWER.showPiece = function() { 
-      // console.log('showing a piece in GAMEBOARD.createPiece')
+      // console.log('showing a piece in GAMEBOARD.createPiece');
+    };
+    VIEWER.displayPlayerMove = function () {
+
     };
   });
 
@@ -83,61 +164,3 @@ describe('GAMEBOARD: player movement', function () {
 });
 
 
-// describe("Player", function() {
-//   var player;
-//   var song;
-
-//   beforeEach(function() {
-//     player = new Player();
-//     song = new Song();
-//   });
-
-//   it("should be able to play a Song", function() {
-//     player.play(song);
-//     expect(player.currentlyPlayingSong).toEqual(song);
-
-//     //demonstrates use of custom matcher
-//     expect(player).toBePlaying(song);
-//   });
-
-//   describe("when song has been paused", function() {
-//     beforeEach(function() {
-//       player.play(song);
-//       player.pause();
-//     });
-
-//     it("should indicate that the song is currently paused", function() {
-//       expect(player.isPlaying).toBeFalsy();
-
-//       // demonstrates use of 'not' with a custom matcher
-//       expect(player).not.toBePlaying(song);
-//     });
-
-//     it("should be possible to resume", function() {
-//       player.resume();
-//       expect(player.isPlaying).toBeTruthy();
-//       expect(player.currentlyPlayingSong).toEqual(song);
-//     });
-//   });
-
-//   // demonstrates use of spies to intercept and test method calls
-//   it("tells the current song if the user has made it a favorite", function() {
-//     spyOn(song, 'persistFavoriteStatus');
-
-//     player.play(song);
-//     player.makeFavorite();
-
-//     expect(song.persistFavoriteStatus).toHaveBeenCalledWith(true);
-//   });
-
-//   //demonstrates use of expected exceptions
-//   describe("#resume", function() {
-//     it("should throw an exception if song is already playing", function() {
-//       player.play(song);
-
-//       expect(function() {
-//         player.resume();
-//       }).toThrowError("song is already playing");
-//     });
-//   });
-// });
