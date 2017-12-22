@@ -724,7 +724,7 @@ var GAMEBOARD = {
           GAMEBOARD.player.enqueuePlayerMove();
         }
       },
-      name: 'knight'
+      name: 'player'
     }
   },
   adjustBoardAfterPlayerMove: function (dx, dy) {
@@ -905,7 +905,7 @@ var VIEWER = {
     piece.$view = VIEWER.showSprite(piece.type.$image, piece.x, piece.y);
   },
   flyInPiece: function (piece) {
-    piece.$view = VIEWER.showSprite(piece.type.$image, (GAMEBOARD.viewLeft + GAMEBOARD.viewRight / 2), GAMEBOARD.viewHigh + 1);
+    piece.$view = VIEWER.showSprite(piece.type.$image, (GAMEBOARD.viewLeft + GAMEBOARD.viewWidth / 2), GAMEBOARD.viewHigh + 1);
     piece.$view.animate({
       'left': VIEWER.viewX(piece.x),
       'bottom': VIEWER.viewY(piece.y)
@@ -1044,8 +1044,8 @@ var VIEWER = {
     // calculate square size and set elements' sizes
     VIEWER.adjustBoardSize();
     // generate and append backdrops
-    VIEWER.backdrops.leftTrigger = (GAMEBOARD.viewLeft - 2 * VIEWER.backdrops.x) * VIEWER.squareSize; // to compare with css "left"
-    VIEWER.backdrops.rightTrigger = (GAMEBOARD.viewLeft + GAMEBOARD.viewWidth + VIEWER.backdrops.x) * VIEWER.squareSize; // to compare with css "left"
+    VIEWER.backdrops.leftTrigger = (-2 * VIEWER.backdrops.x) * VIEWER.squareSize; // to compare with css "left"
+    VIEWER.backdrops.rightTrigger = (GAMEBOARD.viewWidth + VIEWER.backdrops.x) * VIEWER.squareSize; // to compare with css "left"
     VIEWER.backdrops.bottomTrigger = -VIEWER.backdrops.y * VIEWER.squareSize; // to compare with css "bottom"
     VIEWER.backdrops.additiveX = VIEWER.backdrops.x * VIEWER.backdrops.i * VIEWER.squareSize; // +/- when moving backdrops
     VIEWER.backdrops.additiveY = VIEWER.backdrops.y * VIEWER.backdrops.j * VIEWER.squareSize; // +/- when moving backdrops

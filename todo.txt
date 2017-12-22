@@ -1,0 +1,2 @@
+1. createPiece always when moved back or piece is taken
+2. new piece do not eat
