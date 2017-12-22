@@ -25,6 +25,7 @@ var GAMEBOARD = {
       'pawn': 100
     }
   },
+  pieceReplacementExpectancy: 0.9,
   gamePlan: {
     curValues: [0, 0, 0, 0, 0, 0],
     curStep: [0, 0, 0, 0, 0, 0],
@@ -175,14 +176,14 @@ var GAMEBOARD = {
         }
         // then add new pieces if needed
         if (GAMEBOARD.pieceWasTaken) {
-          newPiece = GAMEBOARD.createPiece(GAMEBOARD.player.y);
+          newPiece = GAMEBOARD.createPiece(GAMEBOARD.player.y, GAMEBOARD.pieceReplacementExpectancy);
           GAMEBOARD.pieceWasTaken = false;
           if (newPiece) {
             VIEWER.flyInPiece(newPiece);
           }
         }
         if (GAMEBOARD.playerMovedBack) {
-          newPiece = GAMEBOARD.createPiece(GAMEBOARD.addY(GAMEBOARD.player.y, 1));
+          newPiece = GAMEBOARD.createPiece(GAMEBOARD.addY(GAMEBOARD.player.y, GAMEBOARD.playerMovedBack), 1);
           GAMEBOARD.playerMovedBack = false;
           if (newPiece) {
             VIEWER.flyInPiece(newPiece);
@@ -567,12 +568,12 @@ var GAMEBOARD = {
     }
     piece.type = GAMEBOARD.pawn;
   },
-  createPiece: function (forRow) {
+  createPiece: function (forRow, prob) {
     var x;
     var newPiece;
     // randomly generate a piece until we give up or get one that can be on the board
     do {
-      if (Math.random() > GAMEBOARD.pieceExpectancy(GAMEBOARD.maxRow)) {
+      if (Math.random() > prob) {
         return false;
       }
       x = Math.floor(Math.random() * GAMEBOARD.sizeX);
@@ -584,15 +585,15 @@ var GAMEBOARD = {
     GAMEBOARD.addPiece2Board(newPiece);
     return newPiece;
   },
-  createPieceAndShow: function (forRow) {
-    var newPiece = GAMEBOARD.createPiece(forRow);
+  createPieceAndShow: function (forRow, prob) {
+    var newPiece = GAMEBOARD.createPiece(forRow, prob);
     if (!newPiece) return false;
     VIEWER.showPiece(newPiece);
     return true;
   },
   createRow: function (row) {
-    while (GAMEBOARD.createPieceAndShow(row)) {
-      // so far createPiece does all the work
+    while (GAMEBOARD.createPieceAndShow(row, GAMEBOARD.pieceExpectancy(GAMEBOARD.maxRow))) {
+      // so far createPieceAndShow does all the work
     };
     GAMEBOARD.maxRow++;
   },
@@ -734,7 +735,7 @@ var GAMEBOARD = {
     var i, row, x;
     // did the player move back?
     if (dy < 0) {
-      GAMEBOARD.playerMovedBack = true;
+      GAMEBOARD.playerMovedBack = -dy;
     }
     this.viewLeft = this.addX(this.viewLeft, dx);
     this.viewRight = this.addX(this.viewRight, dx);
@@ -866,7 +867,7 @@ var VIEWER = {
       return n.length >= width ? n : new Array(width - n.length + 1).join(z) + n;
     };
     VIEWER.$infoTurn.text(pad(GAMEBOARD.turn, 5));
-    VIEWER.$infoRow.text(pad(GAMEBOARD.maxRow, 5));
+    VIEWER.$infoRow.text(pad(GAMEBOARD.maxRow - 10, 5));
     VIEWER.$infoScore.text(pad(GAMEBOARD.score, 7));
   },
   showSprite: function ($proto, x, y) {
