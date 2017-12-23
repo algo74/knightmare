@@ -7,21 +7,27 @@ var GAMEBOARD = {
     tail: null
   },
   pieceWasTaken: false,
+  viewLowInit: 0,
+  viewLeftInit: 5,
   viewLow: 0,
   viewHigh: 7,
   viewHeight: 8,
   viewLeft: 5,
   viewRight: 19,
   viewWidth: 15,
+  lastBoardShift: {
+    dx: 0,
+    dy: 0
+  },
   score: 0,
   scoreChart: {
     perTurn: 0,
     perRow: 50,
     perPiece: {
-      'bishop': 300,
-      'knight': 500,
-      'rook': 500,
-      'queen': 1000,
+      'bishop': 500,
+      'knight': 1000,
+      'rook': 2000,
+      'queen': 5000,
       'pawn': 100
     }
   },
@@ -34,9 +40,9 @@ var GAMEBOARD = {
 
     /* eslint-disable no-multi-spaces */
     steps: [
-      [10, 50, 0, 0, 0, 0],
-      [30, 70, 0, 0, 0, 0],
-      [20, 60, 5, 0, 0, 0],
+      [10, 60, 0, 0, 0, 0],
+      [20, 70, 0, 0, 0, 0],
+      [20, 65, 5, 0, 0, 0],
       [20, 80, 0, 0, 0, 0],
       [10, 80, 0, 0, 0, 0],
       [20, 65, 0, 5, 0, 0],
@@ -101,18 +107,18 @@ var GAMEBOARD = {
     return this.addjustMod(y + dy, this.sizeY);
   },
   isVisible: function (piece) {
-    // console.log("viewLeft: "+GAMEBOARD.viewLeft);
-    // if ((GAMEBOARD.addX(piece.x, -GAMEBOARD.viewLeft) < GAMEBOARD.viewWidth) && (GAMEBOARD.addY(piece.y, -GAMEBOARD.viewLow) < GAMEBOARD.viewHeight)) {
-    //   piece.$view.css('border', '2px solid red');
-    // } else {
-    //   piece.$view.css('border', '');
-    // }
-    return (GAMEBOARD.addX(piece.x, -GAMEBOARD.viewLeft) < GAMEBOARD.viewWidth) && (GAMEBOARD.addY(piece.y, -GAMEBOARD.viewLow) < GAMEBOARD.viewHeight);
+    var dx = GAMEBOARD.lastBoardShift.dx || 0;
+    var dy = GAMEBOARD.lastBoardShift.dy || 0;
+    var x = GAMEBOARD.addX(piece.x, -GAMEBOARD.viewLeft + (dx < 0 ? dx : 0));
+    var y = GAMEBOARD.addY(piece.y, -GAMEBOARD.viewLow + (dy < 0 ? dy : 0));
+    var width = GAMEBOARD.viewWidth - Math.abs(dx);
+    var height = GAMEBOARD.viewHeight - Math.abs(dy);
+    return (x < width) && (y < height);
   },
   initGame: function () {
     var i;
     GAMEBOARD.initBoard();
-    GAMEBOARD.allowPlayerToMove(true);
+    GAMEBOARD.allowPlayerToMove(false);
     GAMEBOARD.piecesCanMove = true;
     GAMEBOARD.piecesWantMove = false;
     GAMEBOARD.player.nextMove.wantMove = false;
@@ -128,6 +134,7 @@ var GAMEBOARD = {
   },
   startGame: function () {
     console.log('game started');
+    GAMEBOARD.allowPlayerToMove(true);
     // this.playerInterval=setInterval(function(){GAMEBOARD.player.makeMove()}, GAMEBOARD.turnDelay);
     setTimeout(function () {
       GAMEBOARD.pieceInterval = setInterval(function () { GAMEBOARD.enqueuePiecesTurn() }, GAMEBOARD.turnDelay);
@@ -190,6 +197,11 @@ var GAMEBOARD = {
           }
         }
         VIEWER.afterAnimDone(GAMEBOARD.letPlayerMove);
+        // board shift lasts for one move only
+        GAMEBOARD.lastBoardShift = {
+          dx: 0,
+          dy: 0
+        };
       } catch (e) {
         if (e.message === 'Game Over') {
           GAMEBOARD.gameOver();
@@ -208,6 +220,11 @@ var GAMEBOARD = {
           piece: piece
         }
       }
+      // if (GAMEBOARD.isVisible(this)) {
+      //   this.$view.css('border', '2px solid red');
+      // } else {
+      //   this.$view.css('border', '');
+      // }
       if (GAMEBOARD.isVisible(this) && this.type.canTakePlayer(this)) {
         // this.type.animatePlayerDeath(this);
         throw GameOver(this);
@@ -648,6 +665,9 @@ var GAMEBOARD = {
     VIEWER.playerMoves(dx, dy);
     GAMEBOARD.grid[GAMEBOARD.player.x][GAMEBOARD.player.y] = GAMEBOARD.player;
   },
+  playerMoveAllowed: function (dx, dy) {
+    return GAMEBOARD.addY(GAMEBOARD.player.y, -GAMEBOARD.viewLow) >= -dy;
+  },
   player: {
     x: 12,
     y: 2,
@@ -669,6 +689,13 @@ var GAMEBOARD = {
         nextMove.wantMove = false;
         dx = GAMEBOARD.player.nextMove.dx;
         dy = GAMEBOARD.player.nextMove.dy;
+        // console.log(' - - player goes to ' + dx + ',' + dy);
+        // check if it is an allowed player move
+        if (!GAMEBOARD.playerMoveAllowed(dx, dy)) {
+          alert('move is not allowed');
+          GAMEBOARD.piecesCanMove = true;
+          return true;
+        }
         // remove player from grid
         GAMEBOARD.grid[GAMEBOARD.player.x][GAMEBOARD.player.y] = null;
         // calculate new coordinates
@@ -683,7 +710,10 @@ var GAMEBOARD = {
         }
         GAMEBOARD.allowPlayerToMove(false);
         VIEWER.afterAnimDone(function () { GAMEBOARD.adjustBoardAfterPlayerMove(dx, dy) }); // it must also let pieces move after it finished
+      } else {
+        console.log(' - - no move');
       }
+      return true;
     },
     type: {
       $image: $("<img src='images/wknight.png'>")
@@ -728,11 +758,10 @@ var GAMEBOARD = {
       name: 'player'
     }
   },
-  adjustBoardAfterPlayerMove: function (dx, dy) {
+  adjustBoardViewVariablesAfterPlayerMove: function (dx, dy) {
     // called during player's move
     // must let pieces move after finished
     var adjDy;
-    var i, row, x;
     // did the player move back?
     if (dy < 0) {
       GAMEBOARD.playerMovedBack = -dy;
@@ -748,6 +777,17 @@ var GAMEBOARD = {
     } else {
       dy = 0;
     }
+    GAMEBOARD.lastBoardShift = {
+      dx: dx,
+      dy: dy
+    }
+    return dy;
+  },
+  adjustBoardAfterPlayerMove: function (dx, dy) {
+    // called during player's move
+    // must let pieces move after finished
+    var i, row, x;
+    dy = GAMEBOARD.adjustBoardViewVariablesAfterPlayerMove(dx, dy);
     VIEWER.adjustBoardAfterPlayerMove(dx, dy);
     VIEWER.afterAnimDone(function () {
       // recreate rows and update score
@@ -792,10 +832,10 @@ var GAMEBOARD = {
       head: null,
       tail: null
     };
-    GAMEBOARD.viewLow = 0;
-    GAMEBOARD.viewHigh = 7;
-    GAMEBOARD.viewLeft = 5;
-    GAMEBOARD.viewRight = 19;
+    GAMEBOARD.viewLow = GAMEBOARD.viewLowInit;
+    GAMEBOARD.viewHigh = GAMEBOARD.viewLow + GAMEBOARD.viewHeight - 1;
+    GAMEBOARD.viewLeft = GAMEBOARD.viewLeftInit;
+    GAMEBOARD.viewRight = GAMEBOARD.viewLeft + GAMEBOARD.viewWidth - 1;
   }
 };
 
@@ -849,16 +889,16 @@ var VIEWER = {
     VIEWER.$gameboard.css({
       'width': GAMEBOARD.sizeX * VIEWER.squareSize,
       'height': GAMEBOARD.sizeY * VIEWER.squareSize,
-      'left': 0,
-      'bottom': 0
+      'left': -GAMEBOARD.viewLeft * VIEWER.squareSize,
+      'bottom': -GAMEBOARD.viewLow * VIEWER.squareSize
     });
     this.maxJumpToAnimate = 7 * this.squareSize;
   },
   viewX: function (x) {
-    return GAMEBOARD.addX(x, -GAMEBOARD.viewLeft) * VIEWER.squareSize;
+    return GAMEBOARD.addX(x, GAMEBOARD.viewLeftInit - GAMEBOARD.viewLeft) * VIEWER.squareSize;
   },
   viewY: function (y) {
-    return GAMEBOARD.addY(y, -GAMEBOARD.viewLow) * VIEWER.squareSize;
+    return GAMEBOARD.addY(y, GAMEBOARD.viewLowInit - GAMEBOARD.viewLow) * VIEWER.squareSize;
   },
   updateScoreboard: function () {
     var pad = function (n, width, z) {
@@ -1045,8 +1085,8 @@ var VIEWER = {
     // calculate square size and set elements' sizes
     VIEWER.adjustBoardSize();
     // generate and append backdrops
-    VIEWER.backdrops.leftTrigger = (-2 * VIEWER.backdrops.x) * VIEWER.squareSize; // to compare with css "left"
-    VIEWER.backdrops.rightTrigger = (GAMEBOARD.viewWidth + VIEWER.backdrops.x) * VIEWER.squareSize; // to compare with css "left"
+    VIEWER.backdrops.leftTrigger = (-2 * VIEWER.backdrops.x + GAMEBOARD.viewLeftInit) * VIEWER.squareSize; // to compare with css "left"
+    VIEWER.backdrops.rightTrigger = (GAMEBOARD.viewWidth + VIEWER.backdrops.x + GAMEBOARD.viewLeftInit) * VIEWER.squareSize; // to compare with css "left"
     VIEWER.backdrops.bottomTrigger = -VIEWER.backdrops.y * VIEWER.squareSize; // to compare with css "bottom"
     VIEWER.backdrops.additiveX = VIEWER.backdrops.x * VIEWER.backdrops.i * VIEWER.squareSize; // +/- when moving backdrops
     VIEWER.backdrops.additiveY = VIEWER.backdrops.y * VIEWER.backdrops.j * VIEWER.squareSize; // +/- when moving backdrops

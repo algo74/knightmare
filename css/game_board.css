@@ -4,7 +4,19 @@ img {
 #gameboard {
     
     position: absolute;
-    /*opacity: 0.5;*/
+    /* opacity: 0.5; */
+    
+}
+
+#gamewindow {
+    background-color: red;
+    width: 100%;
+    height: 100%;
+    margin-left: auto;
+    margin-right: auto;
+    border: solid 5px;
+    position: relative;
+    overflow: hidden;
     
 }
 
@@ -47,17 +59,7 @@ body {
     height: 100%;
 }
 
-#gamewindow {
-    background-color: red;
-    width: 100%;
-    height: 100%;
-    margin-left: auto;
-    margin-right: auto;
-    border: solid 5px;
-    position: relative;
-    overflow: hidden;
-    
-}
+
 .movePlaceholder {
     background-color: blue;
     opacity: 0.2;

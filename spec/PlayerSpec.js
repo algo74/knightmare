@@ -43,17 +43,17 @@ describe('GAMEBOARD: gamePlan', function () {
     GAMEBOARD.initBoard();
     GAMEBOARD.gamePlan.steps = [
       [10, 0,   0, 0, 0, 0], 
-      [40, 0.7, 0, 0, 0, 0], // 50
-      [20, 0.7, 5, 0, 0, 0], // 70
-      [20, 0.8, 0, 0, 0, 0], // 90
-      [10, 0.8, 0, 0, 0, 0], //100
-      [20, 0.7, 0, 5, 0, 0], //120
-      [10, 0.7, 0, 0, 0, 0], //130
-      [20, 0.7, 0, 0, 4, 0], //150
-      [10, 0.7, 0, 0, 0, 0], //160
-      [20, 0.7, 0, 0, 0, 2], //180
-      [10, 0.7, 0, 0, 0, 0], //190
-      [200, 0.9, 5, 5, 3, 1] //390
+      [40, 70, 0, 0, 0, 0], // 50
+      [20, 70, 5, 0, 0, 0], // 70
+      [20, 80, 0, 0, 0, 0], // 90
+      [10, 80, 0, 0, 0, 0], //100
+      [20, 70, 0, 5, 0, 0], //120
+      [10, 70, 0, 0, 0, 0], //130
+      [20, 70, 0, 0, 4, 0], //150
+      [10, 70, 0, 0, 0, 0], //160
+      [20, 70, 0, 0, 0, 2], //180
+      [10, 70, 0, 0, 0, 0], //190
+      [200, 90, 5, 5, 3, 1] //390
     ];
   });
 
@@ -102,13 +102,13 @@ describe('GAMEBOARD: gamePlan', function () {
 
   it('getTypeFreq: also works correctly', function () {
     expect(GAMEBOARD.gamePlan.getTypeFreq(50,'bishop')).toEqual(0);
-    expect(GAMEBOARD.gamePlan.getTypeFreq(70,'bishop')).toEqual(5);
-    expect(GAMEBOARD.gamePlan.getTypeFreq(54,'bishop')).toEqual(1);
+    expect(GAMEBOARD.gamePlan.getTypeFreq(70,'bishop')).toEqual(0.05);
+    expect(GAMEBOARD.gamePlan.getTypeFreq(54,'bishop')).toEqual(0.01);
     expect(GAMEBOARD.gamePlan.getTypeFreq(130,'bishop')).toEqual(0);
-    expect(GAMEBOARD.gamePlan.getTypeFreq(1170,'bishop')).toEqual(5);
-    expect(GAMEBOARD.gamePlan.getTypeFreq(1170,'knight')).toEqual(5);
-    expect(GAMEBOARD.gamePlan.getTypeFreq(1170,'rook')).toEqual(3);
-    expect(GAMEBOARD.gamePlan.getTypeFreq(1170,'queen')).toEqual(1);
+    expect(GAMEBOARD.gamePlan.getTypeFreq(1170,'bishop')).toEqual(0.05);
+    expect(GAMEBOARD.gamePlan.getTypeFreq(1170,'knight')).toEqual(0.05);
+    expect(GAMEBOARD.gamePlan.getTypeFreq(1170,'rook')).toEqual(0.03);
+    expect(GAMEBOARD.gamePlan.getTypeFreq(1170,'queen')).toEqual(0.01);
   });
 
 
