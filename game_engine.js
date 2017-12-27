@@ -259,11 +259,7 @@ var GAMEBOARD = {
       }
       return true;
     },
-    canTakePlayer (piece) {
-      // ---- removed: so that pawns take on every turn even if they don't move. Otherwise the game is easily beaten.
-      // if ((GAMEBOARD.turn + piece.y) % 2 === 0) {
-      //     return false;
-      // }
+    canTakePlayer: function (piece) {
       if (GAMEBOARD.addX(piece.x, -GAMEBOARD.player.x) === 1) {
         if (GAMEBOARD.addY(piece.y, -GAMEBOARD.player.y) === 1) {
           return true;
@@ -307,7 +303,7 @@ var GAMEBOARD = {
       piece.y = newy;
       return true;
     },
-    canTakePlayer (piece) {
+    canTakePlayer: function (piece) {
       // recalculate coords relative to viewLeft,viewLow
       var x1 = GAMEBOARD.addX(piece.x, -GAMEBOARD.viewLeft);
       var y1 = GAMEBOARD.addY(piece.y, -GAMEBOARD.viewLow);
@@ -413,7 +409,7 @@ var GAMEBOARD = {
         return false;
       }
     },
-    canTakePlayer (piece) {
+    canTakePlayer: function (piece) {
       // since only invisible knights can take the player through view borders,
       // we do not need to check it here - we do not allow invisible pieces take the player anyway
       var dx = Math.abs(GAMEBOARD.addX(piece.x, -GAMEBOARD.viewLeft) - GAMEBOARD.addX(GAMEBOARD.player.x, -GAMEBOARD.viewLeft));
@@ -461,7 +457,7 @@ var GAMEBOARD = {
       // then give up
       return false;
     },
-    canTakePlayer (piece) {
+    canTakePlayer: function (piece) {
       var x1, x2, y1, y2, i, x, y;
       // case 1: same x
       if (piece.x === GAMEBOARD.player.x) {
@@ -551,7 +547,7 @@ var GAMEBOARD = {
       // then give up
       return false;
     },
-    canTakePlayer (piece) {
+    canTakePlayer: function (piece) {
       // either take as a rook
       if (GAMEBOARD.rook.canTakePlayer(piece)) {
         return true;
@@ -1110,7 +1106,7 @@ var VIEWER = {
     $backdropProto = $('<div class="backdrop"></div>').css({
       'width': VIEWER.backdrops.x * VIEWER.squareSize,
       'height': VIEWER.backdrops.y * VIEWER.squareSize,
-      'background-size': (VIEWER.squareSize * 2).toString() + 'px ' + (VIEWER.squareSize * 2).toString() + 'px'
+      'background-size': (VIEWER.squareSize).toString() * 2 + 'px ' + (VIEWER.squareSize).toString() * 2 + 'px'
     });
     for (i = 0; i < VIEWER.backdrops.i; i++) {
       for (j = 0; j < VIEWER.backdrops.j; j++) {
