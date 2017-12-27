@@ -1,4 +1,4 @@
-/* global GAMEBOARD VIEWER */
+/* global GAMEBOARD */
 var AI = {
   worseThanWorstPossibleScore: -100000,
   costOfBeingTaken: -50000,

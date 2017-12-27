@@ -876,12 +876,16 @@ var VIEWER = {
     x: 10,
     y: 10
   },
+  cssParams: {
+    gwBorder: 5,
+    gwHeightFract: 0.8
+  },
   adjustBoardSize: function () {
     // calculate size of square
-    var availableX, availableY;
-    availableX = parseFloat(VIEWER.$gamewindow.width());
-    availableY = parseFloat($(window).height());
-    VIEWER.squareSize = Math.floor(Math.min(availableX / GAMEBOARD.viewWidth, availableY / GAMEBOARD.viewHeight) / 1.5);
+    var availableX, availableY, usedX, usedY, adjFactor;
+    availableX = parseFloat(VIEWER.$gamewindow.width()) - VIEWER.cssParams.gwBorder * 2;
+    availableY = parseFloat($(window).height()) * VIEWER.cssParams.gwHeightFract;
+    VIEWER.squareSize = Math.floor(Math.min(availableX / GAMEBOARD.viewWidth, availableY / GAMEBOARD.viewHeight));
     // set sizes of board
     VIEWER.$gamewindow.css({ 'width': GAMEBOARD.viewWidth * VIEWER.squareSize,
       'height': GAMEBOARD.viewHeight * VIEWER.squareSize
@@ -893,6 +897,18 @@ var VIEWER = {
       'bottom': -GAMEBOARD.viewLow * VIEWER.squareSize
     });
     this.maxJumpToAnimate = 7 * this.squareSize;
+    // adjusting score board
+    availableX = parseFloat(VIEWER.$gamewindow.width());
+    availableY = parseFloat($(window).height()) * (1 - VIEWER.cssParams.gwHeightFract) - VIEWER.cssParams.gwBorder * 2;
+    usedX = 0;
+    usedY = 0;
+    $('.infoblock').each(function () {
+      usedX += $(this).outerWidth(true);
+      usedY = Math.max(usedY, $(this).outerHeight(true));
+      console.log($(this).outerWidth(true));
+    });
+    adjFactor = Math.min(availableX / usedX, availableY / usedY);
+    $('#info-header').css('font-size', parseFloat($('#info-header').css('font-size')) * adjFactor);
   },
   viewX: function (x) {
     return GAMEBOARD.addX(x, GAMEBOARD.viewLeftInit - GAMEBOARD.viewLeft) * VIEWER.squareSize;
