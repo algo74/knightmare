@@ -77,9 +77,10 @@ var AI = {
         } else {
           curScore = 0;
         }
-        curScore += 50 * curMove.dy;
+        curScore += 200 * curMove.dy - 150 * Math.abs(curMove.dy);
         if (AI.playerWillBeTaken()) {
           curScore += AI.costOfBeingTaken;
+          console.log('would be taken at move ' + i);
         }
         // check score
         if (curScore > bestScoreSoFar) {
@@ -115,7 +116,7 @@ var AI = {
       AI.gbAllowPlayerToMove(allow);
       if (allow) {
         // console.log('trying to move player');
-        setTimeout(AI.schedulePlayerMove, GAMEBOARD.turnDelay / 3);
+        setTimeout(AI.schedulePlayerMove, GAMEBOARD.turnDelay / 4);
       }
     }
     console.log('AI initialized');

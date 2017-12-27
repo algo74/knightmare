@@ -1049,7 +1049,7 @@ var VIEWER = {
     piece.$view.animate({'left': x2}, VIEWER.endAnimOpt2);
     // TODO
     VIEWER.afterAnimDone(function () {
-      alert('Game Over');
+      // alert('Game Over');
       piece.$view.animate({
         'left': x1 - VIEWER.squareSize / 2,
         'bottom': y1 - VIEWER.squareSize / 2
