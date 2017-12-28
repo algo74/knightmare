@@ -86,6 +86,7 @@ img {
 
 .backdrop {
     background-color:#f7d688;
+    background-image: url('images/board.png');
     background-image:  url("data:image/svg+xml;charset=utf8,\
             %3Csvg xmlns='http://www.w3.org/2000/svg' width='2' height='2' fill='rgb(197, 117, 14)' fill-opacity='1' %3E\
             %3Crect x='1' width='1' height='1'  /%3E\
@@ -109,11 +110,21 @@ background-size: 30px 30px;
 
 
 .movePlaceholder {
-    background-color: blue;
+    background-color: #444;
     opacity: 0.2;
     z-index: 20;
+}
+.movePlaceholder.active {
+    background-color: blue;
+    
+}
+
+.movePlaceholder.selected {
+    background-color: green;
+    
 }
 .movePlaceholder:hover{
     opacity: 0.5;
     
 }
+

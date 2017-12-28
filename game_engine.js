@@ -136,9 +136,10 @@ var GAMEBOARD = {
     console.log('game started');
     GAMEBOARD.allowPlayerToMove(true);
     // this.playerInterval=setInterval(function(){GAMEBOARD.player.makeMove()}, GAMEBOARD.turnDelay);
-    setTimeout(function () {
-      GAMEBOARD.pieceInterval = setInterval(function () { GAMEBOARD.enqueuePiecesTurn() }, GAMEBOARD.turnDelay);
-    }, GAMEBOARD.turnDelay / 2);
+    setTimeout(function () { GAMEBOARD.enqueueTurn() }, GAMEBOARD.turnDelay * 2); // TODO: improve start of the game
+  },
+  enqueueTurn: function () {
+    this.enqueuePiecesTurn();
   },
   gameOver: function () {
     // delete intervals
@@ -197,6 +198,8 @@ var GAMEBOARD = {
           }
         }
         VIEWER.afterAnimDone(GAMEBOARD.letPlayerMove);
+        // schedule the next turn
+        setTimeout(function () { GAMEBOARD.enqueueTurn() }, GAMEBOARD.turnDelay);
         // board shift lasts for one move only
         GAMEBOARD.lastBoardShift = {
           dx: 0,
@@ -745,6 +748,8 @@ var GAMEBOARD = {
         var dy = this.moveList[i].dy;
 
         return function () {
+          VIEWER.$gameboard.find('.selected').removeClass('selected');
+          $(this).addClass('selected');
           GAMEBOARD.player.nextMove.dx = dx;
           GAMEBOARD.player.nextMove.dy = dy;
           GAMEBOARD.player.nextMove.wantMove = true;
@@ -997,6 +1002,7 @@ var VIEWER = {
     }
   },
   playerMoves: function (dx, dy) {
+    VIEWER.$gameboard.find('.selected').removeClass('selected');
     $('.player').animate({ 'left': '+=' + dx * VIEWER.squareSize,
       'bottom': '+=' + dy * VIEWER.squareSize}, this.playerAnimOpt);
     GAMEBOARD.player.$view.css({
@@ -1071,7 +1077,9 @@ var VIEWER = {
   displayPlayerMove: function (bool) {
     if (bool) {
       this.$gamewindow.css('border-color', 'white');
+      $('.movePlaceholder').addClass('active');
     } else {
+      $('.movePlaceholder').removeClass('active');
       this.$gamewindow.css('border-color', 'black');
     }
   },
