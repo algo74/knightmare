@@ -715,7 +715,7 @@ var GAMEBOARD = {
       return true;
     },
     type: {
-      $image: $("<img src='images/wknight.png'>")
+      $image: $("<img src='images/player.png'>")
         .addClass('player'),
       moveList: [
         { dx: 2,
