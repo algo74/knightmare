@@ -128,3 +128,6 @@ background-size: 30px 30px;
     
 }
 
+#gameboard.anim {
+  transition: transform 250ms ease-in-out;
+}

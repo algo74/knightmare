@@ -1005,10 +1005,6 @@ var VIEWER = {
     VIEWER.$gameboard.find('.selected').removeClass('selected');
     $('.player').animate({ 'left': '+=' + dx * VIEWER.squareSize,
       'bottom': '+=' + dy * VIEWER.squareSize}, this.playerAnimOpt);
-    GAMEBOARD.player.$view.css({
-      'left': VIEWER.viewX(GAMEBOARD.player.x),
-      'bottom': VIEWER.viewY(GAMEBOARD.player.y)
-    });
   },
   playerTakes: function (dx, dy) {
     VIEWER.playerMoves(dx, dy);
@@ -1018,28 +1014,43 @@ var VIEWER = {
     this.$gameboard.children().promise().done(callback);
   },
   adjustBoardAfterPlayerMove: function (dx, dy) {
-    this.afterAnimDone(
-      function () {
-        VIEWER.$gameboard.children().animate({
-          'left': '-=' + dx * VIEWER.squareSize,
-          'bottom': '-=' + dy * VIEWER.squareSize
-        }, this.boardAnimOpt);
-        VIEWER.afterAnimDone(function () {
-          VIEWER.$backdrops.each(function (i, e) {
-            var left, bottom;
-            e = $(e);
-            left = parseInt(e.css('left'));
-            bottom = parseInt(e.css('bottom'));
-            if (left < VIEWER.backdrops.leftTrigger) {
-              e.css('left', '+=' + VIEWER.backdrops.additiveX);
-            } else if (left > VIEWER.backdrops.rightTrigger) {
-              e.css('left', '-=' + VIEWER.backdrops.additiveX);
+    GAMEBOARD.player.$view.queue(
+      function (next) {
+        VIEWER.$gameboard
+          .addClass('anim')
+          .css({
+            'transform': 'translate('
+              + -dx * VIEWER.squareSize + 'px,'
+              + dy * VIEWER.squareSize + 'px)'
+          }, this.boardAnimOpt)
+          .one(
+            'webkitTransitionEnd otransitionend oTransitionEnd msTransitionEnd transitionend',
+            function () {
+              VIEWER.$gameboard.removeClass('anim')
+                .css({
+                  'transform': 'none'
+                }, this.boardAnimOpt);
+              VIEWER.$gameboard.children().css({
+                'left': '-=' + dx * VIEWER.squareSize,
+                'bottom': '-=' + dy * VIEWER.squareSize
+              }, this.boardAnimOpt);
+              VIEWER.$backdrops.each(function (i, e) {
+                var left, bottom;
+                e = $(e);
+                left = parseInt(e.css('left'));
+                bottom = parseInt(e.css('bottom'));
+                if (left < VIEWER.backdrops.leftTrigger) {
+                  e.css('left', '+=' + VIEWER.backdrops.additiveX);
+                } else if (left > VIEWER.backdrops.rightTrigger) {
+                  e.css('left', '-=' + VIEWER.backdrops.additiveX);
+                }
+                if (bottom < VIEWER.backdrops.bottomTrigger) {
+                  e.css('bottom', '+=' + VIEWER.backdrops.additiveY);
+                }
+              });
+              next();
             }
-            if (bottom < VIEWER.backdrops.bottomTrigger) {
-              e.css('bottom', '+=' + VIEWER.backdrops.additiveY);
-            }
-          });
-        });
+          );
       }
     )
     // redraw all out of bound elements (?)
